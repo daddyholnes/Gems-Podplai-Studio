@@ -1,296 +1,239 @@
 """
-Enhanced audio recording with WebRTC for AI Chat Studio
-Provides improved audio recording with configurable duration and visual feedback
+WebRTC-based audio recording for Streamlit applications
+
+This module provides enhanced audio recording capabilities using WebRTC,
+which offers better quality and real-time processing compared to basic
+audio recording.
 """
-import os
-import time
+
 import base64
-import tempfile
 import numpy as np
 import streamlit as st
 import av
-import wave
-from typing import Tuple, Optional, List, Dict, Any, Callable
+from typing import List, Optional, Dict, Any, Tuple
+from datetime import datetime
 from streamlit_webrtc import (
-    AudioProcessorBase,
-    RTCConfiguration,
-    WebRtcMode,
-    webrtc_streamer,
+    webrtc_streamer, 
+    WebRtcMode, 
+    RTCConfiguration, 
+    VideoProcessorBase,
+    AudioProcessorBase
 )
+import tempfile
+import os
+import time
+import uuid
 
-
-# WebRTC configuration using default STUN servers
+# Configure RTC for STUN servers
 RTC_CONFIGURATION = RTCConfiguration(
     {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
 )
 
-
-class AudioRecorder(AudioProcessorBase):
-    """Audio recorder processor for WebRTC"""
+class AudioProcessor(AudioProcessorBase):
+    """Audio processor for WebRTC streaming that saves audio frames to a buffer"""
     
-    def __init__(self, 
-                 key_prefix: str = "audio_recorder",
-                 max_duration: int = 60,
-                 sample_rate: int = 16000):
+    def __init__(self, max_duration: int = 60):
         """
-        Initialize audio recorder
+        Initialize the audio processor with the specified maximum duration
         
         Args:
-            key_prefix: Prefix for Streamlit session state keys
             max_duration: Maximum recording duration in seconds
-            sample_rate: Audio sample rate
         """
-        self.key_prefix = key_prefix
-        self.max_duration = max_duration
-        self.sample_rate = sample_rate
-        self.audio_frames: List[np.ndarray] = []
+        self.audio_buffer = []
+        self.sample_rate = 48000  # WebRTC typically uses 48kHz
+        self.channels = 1  # Mono audio
+        self.max_frames = max_duration * self.sample_rate
         self.start_time = None
-        self.is_recording = False
+        self.recording_complete = False
+        self.stopped = False
+        self.output_file = None
         
-        # Initialize session state variables
-        if f"{key_prefix}_frames" not in st.session_state:
-            st.session_state[f"{key_prefix}_frames"] = []
-        if f"{key_prefix}_recording" not in st.session_state:
-            st.session_state[f"{key_prefix}_recording"] = False
-        if f"{key_prefix}_elapsed" not in st.session_state:
-            st.session_state[f"{key_prefix}_elapsed"] = 0.0
-        if f"{key_prefix}_file_path" not in st.session_state:
-            st.session_state[f"{key_prefix}_file_path"] = None
-        if f"{key_prefix}_base64" not in st.session_state:
-            st.session_state[f"{key_prefix}_base64"] = None
-            
-    def start(self):
-        """Start recording"""
-        self.audio_frames = []
-        self.start_time = time.time()
-        self.is_recording = True
-        st.session_state[f"{self.key_prefix}_recording"] = True
-        st.session_state[f"{self.key_prefix}_elapsed"] = 0.0
-        st.session_state[f"{self.key_prefix}_frames"] = []
-        
-    def stop(self) -> Tuple[Optional[str], Optional[str]]:
-        """
-        Stop recording and save the audio file
-        
-        Returns:
-            Tuple of (file_path, base64_audio) if successful, or (None, None) if not
-        """
-        self.is_recording = False
-        st.session_state[f"{self.key_prefix}_recording"] = False
-        
-        if not self.audio_frames:
-            return None, None
-        
-        # Save audio frames to a temporary WAV file
-        temp_file = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
-        file_path = temp_file.name
-        temp_file.close()
-        
-        # Save as WAV file
-        try:
-            with wave.open(file_path, 'wb') as wf:
-                wf.setnchannels(1)  # Mono
-                wf.setsampwidth(2)  # 16-bit
-                wf.setframerate(self.sample_rate)
-                
-                # Convert float32 samples to int16
-                audio_data = np.concatenate(self.audio_frames)
-                audio_data = (audio_data * 32767).astype(np.int16).tobytes()
-                wf.writeframes(audio_data)
-                
-            # Read and encode to base64
-            with open(file_path, 'rb') as f:
-                audio_bytes = f.read()
-                base64_audio = base64.b64encode(audio_bytes).decode('utf-8')
-                
-            # Save to session state
-            st.session_state[f"{self.key_prefix}_file_path"] = file_path
-            st.session_state[f"{self.key_prefix}_base64"] = base64_audio
-            
-            return file_path, base64_audio
-        
-        except Exception as e:
-            st.error(f"Error saving audio: {e}")
-            # Clean up the file if there was an error
-            if os.path.exists(file_path):
-                try:
-                    os.remove(file_path)
-                except:
-                    pass
-            return None, None
+        # Create a temporary file to store the audio
+        fd, self.output_path = tempfile.mkstemp(suffix=".wav")
+        os.close(fd)
         
     def recv(self, frame: av.AudioFrame) -> av.AudioFrame:
-        """Process audio frame"""
-        if self.is_recording:
-            # Update elapsed time
-            elapsed = time.time() - self.start_time
-            st.session_state[f"{self.key_prefix}_elapsed"] = elapsed
+        """
+        Process each incoming audio frame
+        
+        Args:
+            frame: Audio frame from WebRTC
             
-            # Check if we've hit the maximum duration
-            if elapsed >= self.max_duration:
-                self.is_recording = False
-                st.session_state[f"{self.key_prefix}_recording"] = False
-                
-            # Convert to numpy array and append to frames
-            audio_data = frame.to_ndarray()[0]  # Get first channel
-            self.audio_frames.append(audio_data)
-            st.session_state[f"{self.key_prefix}_frames"] = self.audio_frames
+        Returns:
+            The unmodified audio frame
+        """
+        if self.stopped or self.recording_complete:
+            return frame
+            
+        if self.start_time is None:
+            self.start_time = time.time()
+            
+        # Convert frame to numpy array
+        sound_array = frame.to_ndarray()
+        
+        # Append to buffer
+        self.audio_buffer.append(sound_array)
+        
+        # Check if we've reached the maximum duration
+        total_samples = sum(len(chunk) for chunk in self.audio_buffer)
+        if total_samples >= self.max_frames:
+            self.recording_complete = True
+            self._save_audio()
             
         return frame
     
-    def get_elapsed_time(self) -> float:
-        """Get elapsed recording time in seconds"""
-        return st.session_state[f"{self.key_prefix}_elapsed"]
+    def stop(self):
+        """Stop recording and save the audio file"""
+        self.stopped = True
+        self._save_audio()
     
-    def is_currently_recording(self) -> bool:
-        """Check if currently recording"""
-        return st.session_state[f"{self.key_prefix}_recording"]
+    def _save_audio(self):
+        """Save the recorded audio to a WAV file"""
+        if not self.audio_buffer:
+            return
+            
+        try:
+            import soundfile as sf
+            
+            # Concatenate all audio chunks
+            audio_data = np.concatenate(self.audio_buffer, axis=0)
+            
+            # Save as WAV file
+            sf.write(
+                self.output_path, 
+                audio_data, 
+                self.sample_rate, 
+                format='WAV'
+            )
+            
+            # Set the output file flag
+            self.output_file = self.output_path
+            
+        except Exception as e:
+            st.error(f"Error saving audio: {str(e)}")
     
-    def cleanup(self):
-        """Clean up temporary audio file"""
-        file_path = st.session_state.get(f"{self.key_prefix}_file_path")
-        if file_path and os.path.exists(file_path):
-            try:
-                os.remove(file_path)
-                st.session_state[f"{self.key_prefix}_file_path"] = None
-                st.session_state[f"{self.key_prefix}_base64"] = None
-                print(f"Removed temporary audio file: {file_path}")
-            except Exception as e:
-                print(f"Error removing temporary audio file: {str(e)}")
-
-
-def create_webrtc_audio_recorder(
-    key: str = "audio_recorder",
-    max_duration: int = 60,
-    sample_rate: int = 16000,
-    audio_html_attrs: Optional[Dict[str, Any]] = None,
-    start_recording_label: str = "Start Recording",
-    stop_recording_label: str = "Stop Recording",
-) -> AudioRecorder:
-    """
-    Create a WebRTC audio recorder with controls
-    
-    Args:
-        key: Unique key for this recorder instance
-        max_duration: Maximum recording duration in seconds
-        sample_rate: Audio sample rate
-        audio_html_attrs: HTML attributes for audio element
-        start_recording_label: Label for start recording button
-        stop_recording_label: Label for stop recording button
+    @property
+    def recording_duration(self) -> float:
+        """Get the current recording duration in seconds"""
+        if self.start_time is None:
+            return 0
+        return time.time() - self.start_time
         
-    Returns:
-        AudioRecorder instance
-    """
-    # Create recorder instance
-    recorder = AudioRecorder(
-        key_prefix=key,
-        max_duration=max_duration,
-        sample_rate=sample_rate
-    )
-    
-    # Create WebRTC streamer
-    ctx = webrtc_streamer(
-        key=key,
-        mode=WebRtcMode.SENDONLY,
-        rtc_configuration=RTC_CONFIGURATION,
-        audio_processor_factory=lambda: recorder,
-        media_stream_constraints={"audio": True, "video": False},
-    )
-    
-    # Session state for recording state
-    if f"{key}_started" not in st.session_state:
-        st.session_state[f"{key}_started"] = False
-    
-    # Start/Stop control buttons
-    col1, col2 = st.columns(2)
-    
-    if ctx.state.playing:
-        if col1.button(
-            start_recording_label,
-            key=f"{key}_start_btn",
-            disabled=recorder.is_currently_recording(),
-            use_container_width=True
-        ):
-            recorder.start()
-            st.session_state[f"{key}_started"] = True
-        
-        if col2.button(
-            stop_recording_label,
-            key=f"{key}_stop_btn",
-            disabled=not recorder.is_currently_recording(),
-            use_container_width=True
-        ):
-            file_path, base64_audio = recorder.stop()
-            if file_path:
-                st.success("Audio recorded successfully!")
-                
-                # Show audio player
-                audio_container = st.container()
-                with audio_container:
-                    st.audio(file_path, **audio_html_attrs or {})
-    
-    # Display progress bar if recording
-    if ctx.state.playing and recorder.is_currently_recording():
-        elapsed = recorder.get_elapsed_time()
-        progress = min(elapsed / max_duration, 1.0)
-        
-        # Display timer
-        st.markdown(f"Recording: **{elapsed:.1f}s** / {max_duration}s")
-        
-        # Display progress bar
-        st.progress(progress)
-    
-    return recorder
-
 
 def audio_recorder_ui(
-    key: str = "audio_recorder",
-    title: str = "Audio Recording",
-    description: str = "Click the start button to begin recording audio. Click stop when you're done.",
-    durations: List[int] = [30, 60, 120],
+    key: str = "webrtc_recorder",
+    title: str = "Audio Recorder",
+    description: str = "Record audio for transcription or analysis",
+    durations: List[int] = [30, 60, 120, 300],
     show_description: bool = True,
-    show_playback: bool = True,
-    max_duration: int = 60,
-    sample_rate: int = 16000,
+    show_playback: bool = True
 ) -> Optional[str]:
     """
-    Create a complete audio recorder UI with configurable durations
+    Display a WebRTC-based audio recorder widget
     
     Args:
-        key: Unique key for this recorder instance
-        title: Title for the recorder section
-        description: Description text to display
-        durations: List of recording durations to offer (in seconds)
-        show_description: Whether to show the description text
-        show_playback: Whether to show audio playback controls
-        max_duration: Default maximum recording duration in seconds
-        sample_rate: Audio sample rate
+        key: Unique key for the widget
+        title: Title to display above the recorder
+        description: Description text
+        durations: List of recording duration options in seconds
+        show_description: Whether to show the description
+        show_playback: Whether to show audio playback after recording
     
     Returns:
-        Base64-encoded audio string if recording was made, None otherwise
+        Base64-encoded audio data if recording is complete, None otherwise
     """
+    # Session state for audio data
+    if f"{key}_data" not in st.session_state:
+        st.session_state[f"{key}_data"] = None
+    if f"{key}_file_path" not in st.session_state:
+        st.session_state[f"{key}_file_path"] = None
+    if f"{key}_duration" not in st.session_state:
+        st.session_state[f"{key}_duration"] = durations[0]
+    
     # Display title and description
-    st.markdown(f"### {title}")
+    st.subheader(title)
     if show_description:
-        st.markdown(description)
+        st.write(description)
     
-    # Allow user to select recording duration
+    # Duration selector
     selected_duration = st.select_slider(
-        "Select recording duration (seconds):",
+        "Recording duration (seconds)",
         options=durations,
-        value=min([d for d in durations if d >= max_duration], default=durations[0]),
-        key=f"{key}_duration"
+        value=st.session_state[f"{key}_duration"],
+        key=f"{key}_duration_slider"
     )
     
-    # Create the recorder with the selected duration
-    recorder = create_webrtc_audio_recorder(
-        key=key,
-        max_duration=selected_duration,
-        sample_rate=sample_rate,
-        audio_html_attrs={"style": "width: 100%"},
-        start_recording_label="🎙️ Start Recording",
-        stop_recording_label="⏹️ Stop Recording"
-    )
+    # Update session state if duration changed
+    if selected_duration != st.session_state[f"{key}_duration"]:
+        st.session_state[f"{key}_duration"] = selected_duration
+        
+    # Create columns for controls
+    col1, col2 = st.columns(2)
     
-    # Return the base64-encoded audio if available
-    return st.session_state.get(f"{key}_base64")
+    # WebRTC audio recorder in first column
+    with col1:
+        # Audio processor state
+        if f"{key}_processor" not in st.session_state:
+            st.session_state[f"{key}_processor"] = AudioProcessor(
+                max_duration=selected_duration
+            )
+        
+        # Create the WebRTC streamer
+        webrtc_ctx = webrtc_streamer(
+            key=key,
+            mode=WebRtcMode.SENDONLY,
+            audio_processor_factory=lambda: st.session_state[f"{key}_processor"],
+            rtc_configuration=RTC_CONFIGURATION,
+            media_stream_constraints={"audio": True, "video": False},
+        )
+        
+        # Check if streamer is active
+        if webrtc_ctx.state.playing:
+            # Show recording status
+            elapsed = st.session_state[f"{key}_processor"].recording_duration
+            st.write(f"Recording... ({elapsed:.1f}s / {selected_duration}s)")
+            
+            progress = min(1.0, elapsed / selected_duration)
+            st.progress(progress)
+        
+        # When stopped, save the recording
+        elif webrtc_ctx.state.playing == False and hasattr(st.session_state, f"{key}_processor"):
+            processor = st.session_state[f"{key}_processor"]
+            
+            # Stop the processor to ensure audio is saved
+            if not processor.stopped:
+                processor.stop()
+                
+            # Check if we have an output file
+            if processor.output_file and os.path.exists(processor.output_file):
+                # Save file path to session state
+                st.session_state[f"{key}_file_path"] = processor.output_file
+                
+                # Read the audio file and encode as base64
+                with open(processor.output_file, "rb") as f:
+                    audio_bytes = f.read()
+                    st.session_state[f"{key}_data"] = base64.b64encode(audio_bytes).decode("utf-8")
+                
+                st.success("Recording saved!")
+    
+    # Controls for recorded audio in second column
+    with col2:
+        # Reset button
+        if st.button("Reset Recording", key=f"{key}_reset"):
+            # Clear session state
+            st.session_state[f"{key}_data"] = None
+            st.session_state[f"{key}_file_path"] = None
+            
+            # Create new processor
+            st.session_state[f"{key}_processor"] = AudioProcessor(
+                max_duration=selected_duration
+            )
+            
+            st.experimental_rerun()
+    
+    # Display recorded audio playback
+    if show_playback and st.session_state[f"{key}_file_path"]:
+        st.audio(st.session_state[f"{key}_file_path"])
+        
+    # Return base64-encoded audio data
+    return st.session_state[f"{key}_data"]

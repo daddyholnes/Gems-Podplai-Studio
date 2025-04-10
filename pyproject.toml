@@ -19,6 +19,8 @@ dependencies = [
     "google-api-python-client>=2.166.0",
     "streamlit-webrtc>=0.61.0",
     "elevenlabs>=1.56.0",
+    "soundfile>=0.13.1",
+    "av>=14.3.0",
 ]
 
 [[tool.uv.index]]

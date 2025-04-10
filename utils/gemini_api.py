@@ -48,7 +48,8 @@ def get_gemini_models() -> List[Dict[str, Any]]:
 def prepare_content_parts(
     prompt: str, 
     image_data: Optional[str] = None, 
-    audio_data: Optional[str] = None
+    audio_data: Optional[str] = None,
+    screen_data: Optional[str] = None
 ) -> List[Any]:
     """
     Prepare content parts for a Gemini model request.
@@ -57,6 +58,7 @@ def prepare_content_parts(
         prompt: User's text input
         image_data: Base64-encoded image data
         audio_data: Base64-encoded audio data
+        screen_data: Base64-encoded screenshot data
         
     Returns:
         List of content parts
@@ -71,6 +73,15 @@ def prepare_content_parts(
             content_parts.append(image)
         except Exception as e:
             st.error(f"Error processing image: {str(e)}")
+    
+    # Add screenshot if provided and different from image_data
+    if screen_data and screen_data != image_data:
+        try:
+            screen_bytes = base64.b64decode(screen_data)
+            screen = Image.open(BytesIO(screen_bytes))
+            content_parts.append(screen)
+        except Exception as e:
+            st.error(f"Error processing screenshot: {str(e)}")
     
     # Add audio if provided (Gemini handles audio via similar mechanism as images)
     if audio_data:
@@ -133,6 +144,7 @@ def get_gemini_response(
     conversation_history: List[Dict[str, Any]], 
     image_data: Optional[str] = None, 
     audio_data: Optional[str] = None, 
+    screen_data: Optional[str] = None,
     temperature: float = DEFAULT_TEMPERATURE, 
     model_name: str = DEFAULT_MODEL
 ) -> str:
@@ -144,6 +156,7 @@ def get_gemini_response(
         conversation_history: List of message dictionaries
         image_data: Base64-encoded image data
         audio_data: Base64-encoded audio data
+        screen_data: Base64-encoded screenshot data
         temperature: Temperature for response generation
         model_name: Gemini model version to use
     
@@ -155,7 +168,7 @@ def get_gemini_response(
         model = genai.GenerativeModel(model_name)
         
         # Prepare the content parts
-        content_parts = prepare_content_parts(prompt, image_data, audio_data)
+        content_parts = prepare_content_parts(prompt, image_data, audio_data, screen_data)
         
         # Prepare the chat history from conversation history
         chat_history = prepare_chat_history(conversation_history[:-1])  # Exclude the last message (current prompt)
@@ -179,6 +192,7 @@ def get_gemini_streaming_response(
     conversation_history: List[Dict[str, Any]], 
     image_data: Optional[str] = None, 
     audio_data: Optional[str] = None, 
+    screen_data: Optional[str] = None,
     temperature: float = DEFAULT_TEMPERATURE, 
     model_name: str = DEFAULT_MODEL
 ) -> Generator[str, None, None]:
@@ -190,6 +204,7 @@ def get_gemini_streaming_response(
         conversation_history: List of message dictionaries
         image_data: Base64-encoded image data
         audio_data: Base64-encoded audio data
+        screen_data: Base64-encoded screenshot data
         temperature: Temperature for response generation
         model_name: Gemini model version to use
         
@@ -201,7 +216,7 @@ def get_gemini_streaming_response(
         model = genai.GenerativeModel(model_name)
         
         # Prepare the content parts
-        content_parts = prepare_content_parts(prompt, image_data, audio_data)
+        content_parts = prepare_content_parts(prompt, image_data, audio_data, screen_data)
         
         # Prepare conversation history
         chat_history = prepare_chat_history(conversation_history[:-1])  # Exclude the last message (current prompt)
