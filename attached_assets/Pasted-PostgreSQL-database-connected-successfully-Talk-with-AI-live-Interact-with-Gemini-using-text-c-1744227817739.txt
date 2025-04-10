@@ -1,0 +1,47 @@
+PostgreSQL database connected successfully!
+
+Talk with AI live
+Interact with Gemini using text, code, images, or detailed queries
+
+
+Image Upload
+
+
+Audio Recording
+
+
+File Upload
+
+Upload an image for analysis
+
+No file chosen
+Drag and drop file here
+Limit 200MB per file • JPG, JPEG, PNG
+Message the AI...
+
+streamlit.errors.StreamlitAPIException: Columns can only be placed inside other columns up to one level of nesting.
+
+Traceback:
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/streamlit/runtime/scriptrunner/exec_code.py", line 121, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/streamlit/runtime/scriptrunner/script_runner.py", line 640, in code_to_exec
+    exec(code, module.__dict__)
+File "/home/runner/workspace/app.py", line 697, in <module>
+    main()
+File "/home/runner/workspace/app.py", line 482, in main
+    model_icons_cols = st.columns(4)
+                       ^^^^^^^^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/streamlit/runtime/metrics_util.py", line 410, in wrapped_func
+    result = non_optional_func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/streamlit/elements/layouts.py", line 381, in columns
+    return [row._block(column_proto(w / total_weight)) for w in weights]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/streamlit/elements/layouts.py", line 381, in <listcomp>
+    return [row._block(column_proto(w / total_weight)) for w in weights]
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/streamlit/delta_generator.py", line 518, in _block
+    _check_nested_element_violation(self, block_type, ancestor_block_types)
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/streamlit/delta_generator.py", line 590, in _check_nested_element_violation
+    raise StreamlitAPIException(

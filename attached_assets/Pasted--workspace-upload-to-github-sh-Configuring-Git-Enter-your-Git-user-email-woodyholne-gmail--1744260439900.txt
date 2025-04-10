@@ -1,0 +1,79 @@
+~/workspace$ ./upload_to_github.sh
+Configuring Git...
+Enter your Git user email: woodyholne@gmail.com
+Enter your Git user name: daddyholnes
+Setting up remote repository...
+Checking repository status...
+remote: Enumerating objects: 88, done.
+remote: Counting objects: 100% (88/88), done.
+remote: Compressing objects: 100% (75/75), done.
+remote: Total 88 (delta 12), reused 87 (delta 11), pack-reused 0 (from 0)
+Unpacking objects: 100% (88/88), 5.79 MiB | 25.13 MiB/s, done.
+From https://github.com/daddyholnes/Gemini-PlayPod
+ + a103e1d...9bbc1ef main       -> origin/main  (forced update)
+Remote repository exists and has content.
+How would you like to proceed?
+1) Pull changes from remote and merge with local changes
+2) Force push local changes (overwrites remote repository!)
+3) Create a new branch with local changes
+Select option (1-3, default: 1): 2
+Adding files to Git...
+Force pushing local changes (this will overwrite remote repository)...
+Enumerating objects: 376, done.
+Counting objects: 100% (376/376), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (368/368), done.
+Writing objects: 100% (376/376), 7.38 MiB | 2.36 MiB/s, done.
+Total 376 (delta 225), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (225/225), done.
+remote: error: GH013: Repository rule violations found for refs/heads/main.
+remote: 
+remote: - GITHUB PUSH PROTECTION
+remote:   —————————————————————————————————————————
+remote:     Resolve the following violations before pushing again
+remote: 
+remote:     - Push cannot contain secrets
+remote: 
+remote:     
+remote:      (?) Learn how to resolve a blocked push
+remote:      https://docs.github.com/code-security/secret-scanning/working-with-secret-scanning-and-push-protection/working-with-push-protection-from-the-command-line#resolving-a-blocked-push
+remote:     
+remote:      (?) This repository does not have Secret Scanning enabled, but is eligible. Enable Secret Scanning to view and manage detected secrets.
+remote:      Visit the repository settings page, https://github.com/daddyholnes/Gemini-PlayPod/settings/security_analysis
+remote:     
+remote:     
+remote:       —— Google Cloud Service Account Credentials ——————————
+remote:        locations:
+remote:          - commit: ab55c4a0046db3c28d5236b33e2b29d578d6df57
+remote:            path: attached_assets/Pasted--type-service-account-project-id-camera-calibration-beta-private-key-id-51a46-1744225793713.txt:1
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/daddyholnes/Gemini-PlayPod/security/secret-scanning/unblock-secret/2vWUerUiU30w2bvLldMLJwIRve7
+remote:     
+remote:     
+remote:       —— Google Cloud Service Account Credentials ——————————
+remote:        locations:
+remote:          - commit: ab55c4a0046db3c28d5236b33e2b29d578d6df57
+remote:            path: service-account-key.json:1
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/daddyholnes/Gemini-PlayPod/security/secret-scanning/unblock-secret/2vWUeocO1HC7dL27i3gtwn9lVJU
+remote:     
+remote:     
+remote:       —— GitHub Personal Access Token ——————————————————————
+remote:        locations:
+remote:          - commit: da8cc59e2c76b0d8bd9214ff3ac29826f50ba572
+remote:            path: attached_assets/Pasted--workspace-Step-1-Create-a-temporary-directory-for-the-clean-repository-mkdir-p-clean-repo--1744233321916.txt:19
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/daddyholnes/Gemini-PlayPod/security/secret-scanning/unblock-secret/2vWUetNTJiveGFiwttlgmpGPSRB
+remote:     
+remote: 
+remote: 
+To https://github.com/daddyholnes/Gemini-PlayPod.git
+ ! [remote rejected] main -> main (push declined due to repository rule violations)
+error: failed to push some refs to 'https://github.com/daddyholnes/Gemini-PlayPod.git'
+Done! Your code has been pushed to GitHub.
+Repository URL: https://github.com/daddyholnes/Gemini-PlayPod
+ Environment updated. Reloading shell...
+~/workspace$ 

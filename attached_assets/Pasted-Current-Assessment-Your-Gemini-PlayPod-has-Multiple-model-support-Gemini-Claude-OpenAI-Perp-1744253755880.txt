@@ -1,0 +1,60 @@
+Current Assessment
+Your Gemini PlayPod has:
+
+Multiple model support (Gemini, Claude, OpenAI, Perplexity)
+
+Parameter controls (temperature sliders)
+
+Dark theme interface
+
+Conversation history capability
+
+Improvement Plan and Prompts
+1. Fix the UI Message Box Size Issue
+Copilot Prompt:
+
+python
+# Fix the chat message container sizing issues in Streamlit:
+# - Increase the height of the message input container
+# - Prevent double-sending of messages by adding a cooldown
+# - Implement proper message overflow handling with scrolling
+# Use st.container() with custom CSS to ensure consistent sizing
+2. Repair Emoji Picker
+Copilot Prompt:
+
+python
+# Implement a reliable emoji picker component:
+# - Use streamlit-extras or custom JavaScript component
+# - Create a togglable emoji panel that appears above the message input
+# - Ensure selected emojis are properly inserted at cursor position
+# - Add frequently used emojis section for quick access
+3. Rebuild Audio Recording Feature
+Copilot Prompt:
+
+python
+# Rebuild the audio recording functionality:
+# - Use WebRTC component or AudioRecorder from streamlit_webrtc
+# - Add a configurable timer with visual feedback
+# - Implement variable recording lengths (not just 5/10 seconds)
+# - Create a proper audio preview with playback controls
+# - Add clear error handling for microphone access issues
+4. Add Text-to-Speech with ElevenLabs
+Copilot Prompt:
+
+python
+# Integrate ElevenLabs TTS into Gemini PlayPod:
+# - Install elevenlabs SDK and add configuration to .env file
+# - Create a button next to AI messages to convert text to speech
+# - Add voice selection dropdown with different ElevenLabs voices
+# - Implement voice playback controls (play, pause, stop)
+# - Cache generated audio to prevent redundant API calls
+5. Improve Chat UI to Match Google AI Studio
+Copilot Prompt:
+
+python
+# Enhance chat UI to closely match Google AI Studio:
+# - Adjust message bubble styling with proper padding and margins
+# - Implement better visual differentiation between user and AI messages
+# - Add timestamps to messages
+# - Improve code block rendering with syntax highlighting and copy button
+# - Create a cleaner sidebar navigation for conversation history

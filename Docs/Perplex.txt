@@ -1,0 +1,159 @@
+The API is conveniently OpenAI client-compatible for easy integration with existing applications.
+cURL
+
+Copy
+curl --location 'https://api.perplexity.ai/chat/completions' \
+--header 'accept: application/json' \
+--header 'content-type: application/json' \
+--header 'Authorization: Bearer {API_KEY}' \
+--data '{
+  "model": "sonar-pro",
+  "messages": [
+    {
+      "role": "system",
+      "content": "Be precise and concise."
+    },
+    {
+      "role": "user",
+      "content": "How many stars are there in our galaxy?"
+    }
+  ]
+}'
+python
+
+Copy
+from openai import OpenAI
+
+YOUR_API_KEY = "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"
+
+messages = [
+    {
+        "role": "system",
+        "content": (
+            "You are an artificial intelligence assistant and you need to "
+            "engage in a helpful, detailed, polite conversation with a user."
+        ),
+    },
+    {   
+        "role": "user",
+        "content": (
+            "How many stars are in the universe?"
+        ),
+    },
+]
+
+client = OpenAI(api_key=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, base_url="https://api.perplexity.ai")
+
+# chat completion without streaming
+response = client.chat.completions.create(
+    model="sonar-pro",
+    messages=messages,
+)
+print(response)
+
+# chat completion with streaming
+response_stream = client.chat.completions.create(
+    model="sonar-pro",
+    messages=messages,
+    stream=True,
+)
+for response in response_stream:
+    print(response)
+Guides
+Models
+Explore all available models and compare their capabilities.
+
+​
+Search Models
+Models designed to retrieve and synthesize information efficiently.
+
+sonar-pro
+Advanced search offering with grounding, supporting complex queries and follow-ups.
+Learn more →
+
+sonar
+Lightweight, cost-effective search model with grounding.
+Learn more →
+
+Best suited for quick factual queries, topic summaries, product comparisons, and current events where simple information retrieval and synthesis is needed without complex reasoning.
+Not ideal for multi-step analyses, exhaustive research on broad topics, or projects requiring detailed instructions or comprehensive reports across multiple sources.
+​
+Research Models
+Models that conduct in-depth analysis and generate detailed reports.
+
+sonar-deep-research
+Expert-level research model conducting exhaustive searches and generating comprehensive reports.
+Learn more →
+
+Ideal for comprehensive topic reports, in-depth analysis with exhaustive web research, and projects requiring synthesis of multiple information sources into cohesive reports like market analyses or literature reviews.
+Avoid using for quick queries, simple lookups, or time-sensitive tasks, as these models may take 30+ minutes to process and are excessive when depth isn’t required.
+​
+Reasoning Models
+Models that excel at complex, multi-step tasks.
+
+sonar-reasoning-pro
+Premier reasoning offering powered by DeepSeek R1 with Chain of Thought (CoT).
+Learn more →
+
+sonar-reasoning
+Fast, real-time reasoning model designed for quick problem-solving with search.
+Learn more →
+
+Excellent for complex analyses requiring step-by-step thinking, tasks needing strict adherence to instructions, information synthesis across sources, and logical problem-solving that demands informed recommendations.
+Not recommended for simple factual queries, basic information retrieval, exhaustive research projects (use Research models instead), or when speed takes priority over reasoning quality.
+​
+Offline Models
+Chat models that do not use our search subsystem.
+
+r1-1776
+A version of DeepSeek R1 post-trained for uncensored, unbiased, and factual information.
+Learn more →
+
+Perfect for creative content generation, tasks not requiring up-to-date web information, scenarios favoring traditional LLM techniques, and maintaining conversation context without search interference.
+Unsuitable for queries needing current web information, tasks benefiting from search-augmented generation, or research projects requiring integration of multiple external sources.
+​
+Context Length per Model
+Model	Context Length	Model Type
+sonar-deep-research	128k	Chat Completion
+sonar-reasoning-pro	128k	Chat Completion
+sonar-reasoning	128k	Chat Completion
+sonar-pro	200k	Chat Completion
+sonar	128k	Chat Completion
+r1-1776	128k	Chat Completion
+sonar-pro has a max output token limit of 8k.
+The reasoning models output Chain of Thought (CoT) responses.
+r1-1776 is an offline chat model that does not use our search subsystem.
+Memory Management with LlamaIndex and Perplexity Sonar API
+Overview
+This directory explores solutions for preserving conversational memory in applications powered by large language models (LLMs). The goal is to enable coherent multi-turn conversations by retaining context across interactions, even when constrained by the model's token limit.
+
+Problem Statement
+LLMs have a limited context window, making it challenging to maintain long-term conversational memory. Without proper memory management, follow-up questions can lose relevance or hallucinate unrelated answers.
+
+Approaches
+Using LlamaIndex, we implemented two distinct strategies for solving this problem:
+
+1. Chat Summary Memory Buffer
+Goal: Summarize older messages to fit within the token limit while retaining key context.
+Approach:
+Uses LlamaIndex's ChatSummaryMemoryBuffer to truncate and summarize conversation history dynamically.
+Ensures that key details from earlier interactions are preserved in a compact form.
+Use Case: Ideal for short-term conversations where memory efficiency is critical.
+2. Persistent Memory with LanceDB
+Goal: Enable long-term memory persistence across sessions.
+Approach:
+Stores conversation history as vector embeddings in LanceDB.
+Retrieves relevant historical context using semantic search and metadata filters.
+Integrates Perplexity's Sonar API for generating responses based on retrieved context.
+Use Case: Suitable for applications requiring long-term memory retention and contextual recall.
+Directory Structure
+memory/
+├── chat_summary_memory_buffer/   # Implementation of summarization-based memory
+├── chat_with_persistence/        # Implementation of persistent memory with LanceDB
+Getting Started
+Clone the repository:
+git clone https://github.com/your-repo/api-cookbook.git
+cd api-cookbook/perplexity-llamaindex/memory
+Follow the README in each subdirectory for setup instructions and usage examples.
+Contributions
+If you have found another way to do tackle the same issue using LlamaIndex please feel free to open a PR! Check out our CONTRIBUTING.md file for more guidance.
