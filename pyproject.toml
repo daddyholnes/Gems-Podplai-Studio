@@ -17,6 +17,7 @@ dependencies = [
     "google-auth-oauthlib>=1.2.1",
     "google-auth>=2.38.0",
     "google-api-python-client>=2.166.0",
+    "streamlit-webrtc>=0.61.0",
 ]
 
 [[tool.uv.index]]
