@@ -411,7 +411,211 @@ def main():
         # Close the chat container div
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # This space is for the main chat input defined at line ~662
+        # Add chat input with ghosted icons inside
+        chat_input_container = st.container()
+        with chat_input_container:
+            st.markdown("""
+            <style>
+            /* Style for the chat input container with icons */
+            .chat-input-with-icons {
+                position: relative;
+                width: 100%;
+                margin-top: 20px;
+            }
+            
+            /* Icon container at the right side of the input */
+            .chat-icons {
+                position: absolute;
+                right: 15px;
+                top: 50%;
+                transform: translateY(-50%);
+                display: flex;
+                gap: 12px;
+                z-index: 100;
+            }
+            
+            /* Individual icon styling */
+            .chat-icon {
+                opacity: 0.6;
+                cursor: pointer;
+                transition: opacity 0.2s;
+                width: 20px;
+                height: 20px;
+            }
+            
+            .chat-icon:hover {
+                opacity: 1;
+            }
+            </style>
+            
+            <div class="chat-input-with-icons">
+                <div class="chat-icons">
+                    <svg class="chat-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#888">
+                        <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/>
+                    </svg>
+                    <svg class="chat-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#888">
+                        <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
+                    </svg>
+                    <svg class="chat-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#888">
+                        <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
+                    </svg>
+                    <svg class="chat-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#888">
+                        <path d="M9.4 10.5l4.77-8.26C13.47 2.09 12.75 2 12 2c-2.4 0-4.6.85-6.32 2.25l3.66 6.35.06-.1zM21.54 9c-.92-2.92-3.15-5.26-6-6.34L11.88 9h9.66zm.26 1h-7.49l.29.5 4.76 8.25C21 16.97 22 14.61 22 12c0-.69-.07-1.35-.2-2z"/>
+                    </svg>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Add the actual chat input (will appear with icons overlaid)
+            if user_input := st.chat_input("Message the AI...", key="chat_input_main"):
+                # Check if we're in a cooldown period (prevents double messages)
+                if st.session_state.message_cooldown:
+                    st.info("Message already sent! Please wait a moment...")
+                    return
+                    
+                # Set cooldown to prevent double sending
+                st.session_state.message_cooldown = True
+                    
+                # If document was uploaded and button clicked, use document text as message
+                if hasattr(st.session_state, 'document_text'):
+                    user_input = st.session_state.document_text
+                    # Clear it after use
+                    delattr(st.session_state, 'document_text')
+                
+                # Create message object
+                user_message = {"role": "user", "content": user_input}
+                
+                # Add image to message if one is uploaded
+                if st.session_state.uploaded_image:
+                    user_message["image"] = st.session_state.uploaded_image
+                    
+                # Add audio to message if recorded
+                if hasattr(st.session_state, 'audio_data') and st.session_state.audio_data:
+                    user_message["audio"] = st.session_state.audio_data
+                    # Clear audio data after use
+                    st.session_state.audio_data = None
+                    st.session_state.audio_path = None
+                
+                # Add user message to chat
+                st.session_state.messages.append(user_message)
+                
+                # Get AI response based on selected model
+                with st.spinner(f"Thinking... using {st.session_state.current_model}"):
+                    try:
+                        image_data = user_message.get("image")
+                        model_name = st.session_state.current_model.lower()
+                        
+                        # Extract model call sign from selected model if available
+                        model_call_sign = None
+                        if "(" in st.session_state.current_model and ")" in st.session_state.current_model:
+                            model_call_sign = st.session_state.current_model.split("(")[1].split(")")[0]
+                        
+                        # Gemini models
+                        if "gemini" in model_name:
+                            # Use extracted call sign or fallback to default
+                            gemini_version = model_call_sign if model_call_sign else "gemini-1.5-pro"
+                            
+                            # Get audio data if available
+                            audio_data = user_message.get("audio")
+                            
+                            ai_response = get_gemini_response(
+                                user_input, 
+                                st.session_state.messages,
+                                image_data=image_data,
+                                audio_data=audio_data,
+                                temperature=st.session_state.temperature,
+                                model_name=gemini_version
+                            )
+                        
+                        # Vertex AI models - direct routing to appropriate API based on model
+                        elif "vertex ai" in model_name:
+                            if "claude" in model_name.lower():
+                                # Use the extracted call sign or default to Claude 3.5
+                                claude_model = model_call_sign if model_call_sign else "claude-3-5-sonnet-20241022"
+                                ai_response = get_vertex_ai_response(
+                                    user_input, 
+                                    st.session_state.messages,
+                                    model_name=claude_model,
+                                    image_data=image_data,
+                                    temperature=st.session_state.temperature
+                                )
+                            else:
+                                # Default Vertex AI model
+                                ai_response = get_vertex_ai_response(
+                                    user_input, 
+                                    st.session_state.messages,
+                                    image_data=image_data,
+                                    temperature=st.session_state.temperature
+                                )
+                        
+                        # OpenAI models
+                        elif "openai" in model_name or "gpt" in model_name:
+                            # Use extracted call sign or fallback to default
+                            gpt_version = model_call_sign if model_call_sign else "gpt-4o"
+                            
+                            ai_response = get_openai_response(
+                                user_input, 
+                                st.session_state.messages,
+                                model_name=gpt_version,
+                                image_data=image_data,
+                                temperature=st.session_state.temperature
+                            )
+                        
+                        # Anthropic models
+                        elif "anthropic" in model_name or "claude" in model_name:
+                            # Use extracted call sign or fallback to default
+                            claude_version = model_call_sign if model_call_sign else "claude-3-5-sonnet-20241022"
+                            
+                            ai_response = get_anthropic_response(
+                                user_input, 
+                                st.session_state.messages,
+                                model_name=claude_version,
+                                image_data=image_data,
+                                temperature=st.session_state.temperature
+                            )
+                        
+                        # Perplexity models
+                        elif "perplexity" in model_name:
+                            # Use extracted call sign or fallback to default
+                            pplx_version = model_call_sign if model_call_sign else "mistral-8x7b-instruct"
+                            
+                            ai_response = get_perplexity_response(
+                                user_input, 
+                                st.session_state.messages,
+                                model_name=pplx_version,
+                                temperature=st.session_state.temperature
+                            )
+                        
+                        # Default to Gemini if model not recognized
+                        else:
+                            ai_response = get_gemini_response(
+                                user_input, 
+                                st.session_state.messages, 
+                                image_data=image_data,
+                                temperature=st.session_state.temperature
+                            )
+                        
+                        # Add AI response to messages
+                        st.session_state.messages.append({"role": "assistant", "content": ai_response})
+                        
+                        # Save the conversation to database for persistence
+                        save_conversation(
+                            username=get_current_user() or "anonymous", 
+                            model=st.session_state.current_model,
+                            messages=st.session_state.messages
+                        )
+                        
+                        # Clear image after use
+                        st.session_state.uploaded_image = None
+                        
+                    except Exception as e:
+                        st.error(f"Error generating response: {str(e)}")
+                        
+                    # Reset cooldown to allow new messages
+                    st.session_state.message_cooldown = False
+                    
+                # Rerun to update UI
+                st.rerun()
     # Right sidebar panel exactly like Google Gemini UI
     with right_sidebar:
         # 1. Model info
@@ -738,154 +942,7 @@ def main():
                     # For other file types, just show the filename
                     st.info(f"File '{uploaded_doc.name}' uploaded. Send a message to the AI to analyze it.")
         
-        # Simple chat input without emoji functionality
-        if user_input := st.chat_input("Message the AI...", key="chat_input_main"):
-            # Check if we're in a cooldown period (prevents double messages)
-            if st.session_state.message_cooldown:
-                st.info("Message already sent! Please wait a moment...")
-                return
-                
-            # Set cooldown to prevent double sending
-            st.session_state.message_cooldown = True
-                
-            # If document was uploaded and button clicked, use document text as message
-            if hasattr(st.session_state, 'document_text'):
-                user_input = st.session_state.document_text
-                # Clear it after use
-                delattr(st.session_state, 'document_text')
-            
-            # Create message object
-            user_message = {"role": "user", "content": user_input}
-            
-            # Add image to message if one is uploaded
-            if st.session_state.uploaded_image:
-                user_message["image"] = st.session_state.uploaded_image
-                
-            # Add audio to message if recorded
-            if hasattr(st.session_state, 'audio_data') and st.session_state.audio_data:
-                user_message["audio"] = st.session_state.audio_data
-                # Clear audio data after use
-                st.session_state.audio_data = None
-                st.session_state.audio_path = None
-            
-            # Add user message to chat
-            st.session_state.messages.append(user_message)
-            
-            # Get AI response based on selected model
-            with st.spinner(f"Thinking... using {st.session_state.current_model}"):
-                try:
-                    image_data = user_message.get("image")
-                    model_name = st.session_state.current_model.lower()
-                    
-                    # Extract model call sign from selected model if available
-                    model_call_sign = None
-                    if "(" in st.session_state.current_model and ")" in st.session_state.current_model:
-                        model_call_sign = st.session_state.current_model.split("(")[1].split(")")[0]
-                    
-                    # Gemini models
-                    if "gemini" in model_name:
-                        # Use extracted call sign or fallback to default
-                        gemini_version = model_call_sign if model_call_sign else "gemini-1.5-pro"
-                        
-                        # Get audio data if available
-                        audio_data = user_message.get("audio")
-                        
-                        ai_response = get_gemini_response(
-                            user_input, 
-                            st.session_state.messages,
-                            image_data=image_data,
-                            audio_data=audio_data,
-                            temperature=st.session_state.temperature,
-                            model_name=gemini_version
-                        )
-                    
-                    # Vertex AI models - direct routing to appropriate API based on model
-                    elif "vertex ai" in model_name:
-                        if "claude" in model_name.lower():
-                            # Use the extracted call sign or default to Claude 3.5
-                            claude_model = model_call_sign if model_call_sign else "claude-3-5-sonnet-20241022"
-                            ai_response = get_anthropic_response(
-                                user_input, 
-                                st.session_state.messages,
-                                model_name=claude_model
-                            )
-                        elif "gpt" in model_name.lower():
-                            # Use the extracted call sign or default to GPT-4o
-                            gpt_model = model_call_sign if model_call_sign else "gpt-4o"
-                            ai_response = get_openai_response(
-                                user_input, 
-                                st.session_state.messages,
-                                model_name=gpt_model
-                            )
-                        else:
-                            # For any other Vertex AI models, try the vertex function but with warning
-                            ai_response = "Note: This model may not be directly accessible through the current API configuration. " + \
-                                        "For best results with third-party models, please select them from their native provider section instead."
-                    
-                    # OpenAI models
-                    elif "openai" in model_name:
-                        # Use the extracted call sign or default to gpt-4o
-                        openai_model = model_call_sign if model_call_sign else "gpt-4o"
-                        ai_response = get_openai_response(
-                            user_input, 
-                            st.session_state.messages,
-                            model_name=openai_model
-                        )
-                    
-                    # Anthropic models
-                    elif "anthropic" in model_name:
-                        # Use the extracted call sign or default to claude-3-5-sonnet-20241022
-                        anthropic_model = model_call_sign if model_call_sign else "claude-3-5-sonnet-20241022"
-                        ai_response = get_anthropic_response(
-                            user_input, 
-                            st.session_state.messages,
-                            model_name=anthropic_model
-                        )
-                    
-                    # Perplexity models
-                    elif "perplexity" in model_name:
-                        # Use the extracted call sign or fallback to default
-                        perplexity_model = model_call_sign if model_call_sign else "pplx-70b-online"
-                        
-                        ai_response = get_perplexity_response(
-                            user_input, 
-                            st.session_state.messages,
-                            temperature=st.session_state.temperature,
-                            model_name=perplexity_model
-                        )
-                    
-                    # Fallback for unknown models
-                    else:
-                        ai_response = "Error: The selected model is not yet implemented."
-                        
-                    # Add AI response to chat
-                    st.session_state.messages.append({"role": "assistant", "content": ai_response})
-                    
-                    # Clear uploaded image after processing
-                    st.session_state.uploaded_image = None
-                    
-                    # Save conversation to database
-                    save_conversation(
-                        st.session_state.user,
-                        st.session_state.current_model,
-                        st.session_state.messages
-                    )
-                    
-                except Exception as e:
-                    st.error(f"Error: {str(e)}")
-                    st.session_state.messages.append({"role": "assistant", "content": f"Sorry, I encountered an error: {str(e)}"})
-                    
-                    # Clear uploaded image if there was an error
-                    st.session_state.uploaded_image = None
-                    
-                    # Reset cooldown to allow user to try again
-                    st.session_state.message_cooldown = False
-            
-            # Reset cooldown for future messages
-            st.session_state.message_cooldown = False
-            
-            # Force a rerun to show the new messages and reset UI state
-            st.rerun()
+        # We already have a chat input in the main area with ghosted icons
     
     # This section is now merged into the sidebar, so we no longer use it
     if False: # Keeping the code for reference but never executing it
