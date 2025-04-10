@@ -26,7 +26,7 @@ CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
 
 # OAuth2 configuration
 # Hardcoded redirect URI to match exactly what's in Google Cloud Console
-REDIRECT_URI = "https://podplay.replit.app"  # No trailing slash, exactly as in Google Console
+REDIRECT_URI = "https://dartopia.uk"  # No trailing slash, exactly as in Google Console
 SCOPES = [
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/userinfo.profile",
@@ -106,7 +106,7 @@ def create_oauth_flow():
         return None
 
     # Create OAuth flow configuration with hardcoded redirect URI
-    hardcoded_redirect_uri = "https://podplay.replit.app"
+    hardcoded_redirect_uri = "https://dartopia.uk"
     client_config = {
         "web": {
             "client_id": CLIENT_ID,
