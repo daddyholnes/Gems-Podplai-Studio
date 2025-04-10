@@ -213,13 +213,13 @@ def main():
     
     # Left sidebar matching the Google Gemini interface
     with st.sidebar:
-        # App selector at top
-        st.text_input("app", value="Gemini Studio", disabled=True, label_visibility="collapsed")
-        
-        # Gemini Studio link
+        # App section heading with icon
         st.markdown("""
-        <div style="padding: 10px 0; cursor: pointer;">
-            <span style="color: white; font-weight: 500;">Gemini Studio</span>
+        <div style="padding: 10px 0; cursor: pointer; display: flex; align-items: center;">
+            <div style="background-color: #4285f4; border-radius: 50%; height: 28px; width: 28px; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
+                <span style="color: white; font-size: 16px;">G</span>
+            </div>
+            <span style="color: white; font-weight: 500; font-size: 16px;">AI Chat Studio</span>
         </div>
         """, unsafe_allow_html=True)
         
@@ -337,9 +337,36 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
+        # Persona selector dropdown across the width
+        st.markdown("""
+        <div style="margin-bottom: 20px;">
+            <div style="background-color: rgba(30, 30, 30, 0.6); border: 1px solid #333; border-radius: 8px; padding: 10px; margin-bottom: 15px;">
+                <p style="color: white; margin-bottom: 5px; font-weight: 500;">Select Persona</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Create a dropdown for persona selection
+        personas = [
+            "Default Assistant", 
+            "Creative Writer", 
+            "Data Scientist", 
+            "Code Expert", 
+            "Language Tutor",
+            "Math Tutor"
+        ]
+        
+        selected_persona = st.selectbox(
+            "Choose a persona for the AI",
+            personas,
+            index=0,
+            key="persona_selector",
+            label_visibility="collapsed"
+        )
+        
         # Model display box exactly as shown in the screenshot
         st.markdown("""
-        <div style="max-width: 600px; margin: 10px auto; padding: 10px; background-color: rgba(20, 20, 20, 0.6); border-radius: 8px; border: 1px solid #333;">
+        <div style="max-width: 600px; margin: 15px auto; padding: 10px; background-color: rgba(20, 20, 20, 0.6); border-radius: 8px; border: 1px solid #333;">
             <p style="margin: 0; color: #4285f4; text-align: center;">
                 <span style="color: #4285f4; font-weight: normal;">Model:</span> <span style="color: #4285f4;">Gemini 2.0 Pro (gemini-1.5-pro)</span>
             </p>
