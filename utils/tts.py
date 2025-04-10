@@ -55,11 +55,20 @@ def get_available_voices() -> List[Tuple[str, str]]:
         return DEFAULT_VOICES
         
     try:
-        # Using the correct import structure from the documentation
         from elevenlabs.client import ElevenLabs
-        client = ElevenLabs(api_key=ELEVENLABS_API_KEY)
+        
+        # Create a reusable client
+        if "eleven_client" not in globals():
+            globals()["eleven_client"] = ElevenLabs(api_key=ELEVENLABS_API_KEY)
+        
+        client = globals()["eleven_client"]
         response = client.voices.get_all()
-        return [(voice.voice_id, voice.name) for voice in response.voices]
+        
+        # Sort voices by name for better UX
+        voices_list = [(voice.voice_id, voice.name) for voice in response.voices]
+        voices_list.sort(key=lambda x: x[1])  # Sort by name
+        
+        return voices_list
     except Exception as e:
         print(f"Error fetching voices: {e}")
         return DEFAULT_VOICES
@@ -72,9 +81,29 @@ def get_available_models() -> List[Tuple[str, str]]:
     Returns:
         List of (model_id, model_name) tuples
     """
-    # For now, return the default models since the API endpoint for models
-    # may not be directly accessible in the current version
-    return DEFAULT_MODELS
+    if not ELEVENLABS_API_KEY:
+        return DEFAULT_MODELS
+    
+    try:
+        from elevenlabs.client import ElevenLabs
+        
+        # Create a reusable client or reuse existing
+        if "eleven_client" not in globals():
+            globals()["eleven_client"] = ElevenLabs(api_key=ELEVENLABS_API_KEY)
+        
+        client = globals()["eleven_client"]
+        models = client.models.get_all()
+        
+        # Filter for models that can do text-to-speech
+        tts_models = [(model.model_id, model.name) for model in models if getattr(model, 'can_do_text_to_speech', True)]
+        
+        # Sort by name
+        tts_models.sort(key=lambda x: x[1])
+        
+        return tts_models if tts_models else DEFAULT_MODELS
+    except Exception as e:
+        print(f"Error fetching models: {e}")
+        return DEFAULT_MODELS
 
 
 def generate_audio_hash(text: str, voice_id: str, model_id: str) -> str:
@@ -140,19 +169,22 @@ def text_to_speech(
         # Use the client-based API from documentation
         from elevenlabs.client import ElevenLabs
         
-        # Initialize client
-        client = ElevenLabs(api_key=ELEVENLABS_API_KEY)
+        # Create a reusable client or reuse existing
+        if "eleven_client" not in globals():
+            globals()["eleven_client"] = ElevenLabs(api_key=ELEVENLABS_API_KEY)
+        
+        client = globals()["eleven_client"]
         
         # Generate audio
-        audio = client.text_to_speech.convert(
+        audio_iterator = client.text_to_speech.convert(
             text=text,
             voice_id=voice_id,
             model_id=model_id,
             output_format="mp3_44100_128"
         )
         
-        # Get bytes
-        audio_bytes = audio
+        # Convert iterator to bytes
+        audio_bytes = b"".join(audio_iterator)
         
         # Determine output path (cache or temporary)
         if use_cache:
