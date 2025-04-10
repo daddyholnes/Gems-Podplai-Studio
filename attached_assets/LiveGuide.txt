@@ -1,0 +1,984 @@
+# A Comprehensive Guide to Multimodal Live API Integration in Python
+
+Before diving into the technical details, the key finding of this research is that multimodal live APIs represent the cutting edge of AI interaction, enabling real-time processing of various data types (text, images, audio) within a single conversation stream. While Gemini offers the most comprehensive native multimodal capabilities, all major providers (OpenAI, Anthropic, and Perplexity) now support various forms of multimodal interaction through their respective SDKs.
+
+## Introduction to Multimodal Live APIs
+
+Multimodal Live APIs represent the next generation of AI interfaces, enabling real-time, streaming conversations with AI models that can process multiple types of data simultaneously. Unlike traditional request-response patterns, these APIs maintain an active connection, allowing for dynamic, interactive experiences.
+
+Multimodal capabilities refer to the ability to process different types of inputs within the same conversation:
+
+- Text: The foundation of most AI interactions
+- Images: Visual analysis and understanding
+- Audio: Speech recognition and audio analysis
+- Video: Real-time video understanding (emerging)
+
+The "Live" aspect introduces key capabilities:
+- Streaming responses: Character-by-character or chunk-by-chunk output
+- Interactive conversations: Building context over multiple turns
+- Real-time analysis: Processing inputs as they arrive
+
+### Key LLM Providers Supporting Multimodal Live APIs
+
+Each major AI provider offers different levels of multimodal support:
+
+- **Google's Gemini**: The most comprehensive native multimodal capabilities, handling text, images, audio, and video in a unified model architecture[7][8]
+- **Vertex AI**: Google Cloud's enterprise platform for deploying Gemini and other models with additional security and integration features[5][6]
+- **OpenAI (GPT-4)**: Strong multimodal capabilities with GPT-4V and GPT-4o offering vision and audio analysis[15]
+- **Anthropic Claude**: Added vision capabilities to complement their strong text capabilities[1]
+- **Perplexity**: Offers both online (search-augmented) and offline models with multimodal support[1]
+
+## Setting Up the Environment
+
+### Required Dependencies
+
+To implement multimodal live API integration, your environment needs several key packages:
+
+```python
+# Install required packages
+!pip install -U google-generativeai  # Gemini API
+!pip install -U google-cloud-aiplatform  # Vertex AI
+!pip install -U openai  # OpenAI API
+!pip install -U anthropic  # Anthropic API 
+!pip install -U perplexity-python  # Perplexity API
+!pip install -U streamlit  # Web interface
+!pip install -U Pillow  # Image processing
+!pip install -U python-dotenv  # Environment variable management
+```
+
+### API Authentication Setup
+
+Create a `.env` file in your project root to store all API keys securely:
+
+```
+# .env file
+GOOGLE_API_KEY="your_google_api_key"
+VERTEX_PROJECT_ID="your_gcp_project_id"
+VERTEX_LOCATION="us-central1"
+OPENAI_API_KEY="your_openai_api_key"
+ANTHROPIC_API_KEY="your_anthropic_api_key"
+PERPLEXITY_API_KEY="your_perplexity_api_key"
+```
+
+And then load them in your application:
+
+```python
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Access API keys
+google_api_key = os.getenv("GOOGLE_API_KEY")
+project_id = os.getenv("VERTEX_PROJECT_ID")
+location = os.getenv("VERTEX_LOCATION")
+openai_api_key = os.getenv("OPENAI_API_KEY")
+anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
+perplexity_api_key = os.getenv("PERPLEXITY_API_KEY")
+```
+
+## Implementing Multimodal Support for Different LLMs
+
+### Google Gemini Implementation
+
+Gemini offers one of the most comprehensive multimodal implementations. Here's how to set up and use the Gemini multimodal live API:
+
+```python
+import google.generativeai as genai
+import PIL.Image
+import base64
+from io import BytesIO
+
+# Configure the Gemini API
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+
+def get_gemini_response(prompt, conversation_history, image_data=None, audio_data=None, temperature=0.7, model_name="gemini-1.5-pro"):
+    """
+    Get a response from the Gemini model with multimodal inputs.
+    
+    Args:
+        prompt (str): User's text input
+        conversation_history (list): List of message dictionaries
+        image_data (str, optional): Base64-encoded image data
+        audio_data (str, optional): Base64-encoded audio data
+        temperature (float): Temperature for response generation
+        model_name (str): Gemini model version to use
+    
+    Returns:
+        str: AI response text
+    """
+    try:
+        # Select the appropriate model
+        model = genai.GenerativeModel(model_name)
+        
+        # Prepare the content parts
+        content_parts = []
+        
+        # Add image if provided
+        if image_data:
+            image_bytes = base64.b64decode(image_data)
+            image = PIL.Image.open(BytesIO(image_bytes))
+            content_parts.append(image)
+        
+        # Add audio if provided (Gemini handles audio via same mechanism as images)
+        if audio_data:
+            audio_bytes = base64.b64decode(audio_data)
+            content_parts.append({"mime_type": "audio/mp3", "data": audio_bytes})
+            
+        # Add the text prompt
+        content_parts.append(prompt)
+        
+        # Prepare the chat history from conversation history
+        chat_history = []
+        for msg in conversation_history[:-1]:  # Exclude the last message (current prompt)
+            role = "user" if msg["role"] == "user" else "model"
+            chat_history.append({"role": role, "parts": [msg["content"]]})
+        
+        # Start a chat session
+        chat = model.start_chat(history=chat_history)
+        
+        # Generate response with streaming
+        response = chat.send_message(content_parts, generation_config={"temperature": temperature})
+        
+        return response.text
+        
+    except Exception as e:
+        return f"Error with Gemini model: {str(e)}"
+```
+
+#### Implementing Gemini Live API for Real-Time Streaming
+
+For truly interactive experiences, implement streaming responses:
+
+```python
+def get_gemini_streaming_response(prompt, conversation_history, image_data=None, audio_data=None, temperature=0.7, model_name="gemini-1.5-pro-preview-03-25"):
+    """
+    Get a streaming response from Gemini with multimodal inputs.
+    """
+    try:
+        # Select the appropriate model
+        model = genai.GenerativeModel(model_name)
+        
+        # Prepare the content parts
+        content_parts = []
+        
+        # Add image if provided
+        if image_data:
+            image_bytes = base64.b64decode(image_data)
+            image = PIL.Image.open(BytesIO(image_bytes))
+            content_parts.append(image)
+        
+        # Add audio if provided
+        if audio_data:
+            audio_bytes = base64.b64decode(audio_data)
+            content_parts.append({"mime_type": "audio/mp3", "data": audio_bytes})
+            
+        # Add the text prompt
+        content_parts.append(prompt)
+        
+        # Prepare conversation history
+        chat_history = []
+        for msg in conversation_history[:-1]:
+            role = "user" if msg["role"] == "user" else "model"
+            chat_history.append({"role": role, "parts": [msg["content"]]})
+        
+        # Start a chat session
+        chat = model.start_chat(history=chat_history)
+        
+        # Generate streaming response
+        response_text = ""
+        for chunk in chat.send_message(content_parts, 
+                                       generation_config={"temperature": temperature},
+                                       stream=True):
+            # Process each chunk
+            if chunk.text:
+                response_text += chunk.text
+                # In a Streamlit app, you would update the UI here
+                # placeholder.markdown(response_text + "▌")
+                
+        return response_text
+        
+    except Exception as e:
+        return f"Error with Gemini streaming: {str(e)}"
+```
+
+### Vertex AI Implementation
+
+Vertex AI adds enterprise features like model deployment and management on top of Gemini:
+
+```python
+from google.cloud import aiplatform
+from vertexai.preview.generative_models import GenerativeModel, Part
+
+def get_vertex_ai_response(prompt, conversation_history, image_data=None, audio_data=None, temperature=0.7, model_name="gemini-1.5-pro"):
+    """
+    Get a response from Vertex AI with multimodal inputs.
+    """
+    try:
+        # Initialize Vertex AI
+        aiplatform.init(project=os.getenv("VERTEX_PROJECT_ID"), 
+                         location=os.getenv("VERTEX_LOCATION"))
+        
+        # Initialize the model
+        model = GenerativeModel(model_name)
+        
+        # Convert conversation history to Vertex AI format
+        chat_history = []
+        for msg in conversation_history[:-1]:
+            role = "user" if msg["role"] == "user" else "model"
+            chat_history.append({"role": role, "parts": [Part.from_text(msg["content"])]})
+        
+        # Create a chat session
+        chat = model.start_chat(history=chat_history)
+        
+        # Prepare content
+        content = []
+        
+        # Add text content
+        content.append(Part.from_text(prompt))
+        
+        # Add image if provided
+        if image_data:
+            image_bytes = base64.b64decode(image_data)
+            content.append(Part.from_data(data=image_bytes, mime_type="image/jpeg"))
+            
+        # Add audio if provided
+        if audio_data:
+            audio_bytes = base64.b64decode(audio_data)
+            content.append(Part.from_data(data=audio_bytes, mime_type="audio/mp3"))
+        
+        # Generate response
+        response = chat.send_message(content, 
+                                     generation_config={"temperature": temperature})
+        
+        return response.text
+    
+    except Exception as e:
+        return f"Error with Vertex AI: {str(e)}"
+```
+
+### OpenAI Implementation
+
+OpenAI's GPT-4 models now support vision capabilities and soon audio analysis:
+
+```python
+from openai import OpenAI
+
+def get_openai_response(prompt, conversation_history, image_data=None, audio_data=None, temperature=0.7, model_name="gpt-4o"):
+    """
+    Get a response from OpenAI with multimodal inputs.
+    """
+    try:
+        # Initialize OpenAI client
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        
+        # Convert conversation history to OpenAI format
+        messages = []
+        for msg in conversation_history[:-1]:
+            role = "user" if msg["role"] == "user" else "assistant"
+            messages.append({"role": role, "content": [{"type": "text", "text": msg["content"]}]})
+        
+        # Prepare current message content
+        current_message_content = []
+        
+        # Add text content
+        current_message_content.append({"type": "text", "text": prompt})
+        
+        # Add image if provided
+        if image_data:
+            current_message_content.append({
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/jpeg;base64,{image_data}"
+                }
+            })
+        
+        # Add audio if provided (if supported by the model)
+        if audio_data and model_name == "gpt-4o":
+            current_message_content.append({
+                "type": "audio",
+                "audio": {
+                    "data": audio_data
+                }
+            })
+        
+        # Add the current message to the conversation
+        messages.append({"role": "user", "content": current_message_content})
+        
+        # Generate response
+        response = client.chat.completions.create(
+            model=model_name,
+            messages=messages,
+            temperature=temperature,
+        )
+        
+        return response.choices[0].message.content
+    
+    except Exception as e:
+        return f"Error with OpenAI: {str(e)}"
+```
+
+### Anthropic Implementation
+
+Anthropic's Claude models recently added vision capabilities:
+
+```python
+from anthropic import Anthropic
+
+def get_anthropic_response(prompt, conversation_history, image_data=None, temperature=0.7, model_name="claude-3-5-sonnet-20241022"):
+    """
+    Get a response from Anthropic Claude with multimodal inputs.
+    """
+    try:
+        # Initialize Anthropic client
+        client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        
+        # Prepare the message content
+        messages = []
+        
+        # Convert conversation history
+        for msg in conversation_history[:-1]:
+            role = "user" if msg["role"] == "user" else "assistant"
+            messages.append({"role": role, "content": msg["content"]})
+        
+        # Prepare current message content
+        current_content = []
+        
+        # Add text content
+        current_content.append({
+            "type": "text",
+            "text": prompt
+        })
+        
+        # Add image if provided
+        if image_data:
+            current_content.append({
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": "image/jpeg",
+                    "data": image_data
+                }
+            })
+        
+        # Add the current message
+        messages.append({"role": "user", "content": current_content})
+        
+        # Generate response
+        response = client.messages.create(
+            model=model_name,
+            messages=messages,
+            temperature=temperature,
+        )
+        
+        return response.content[0].text
+    
+    except Exception as e:
+        return f"Error with Anthropic: {str(e)}"
+```
+
+### Perplexity Implementation
+
+Perplexity offers both online (search-augmented) and offline models:
+
+```python
+from perplexity import Perplexity
+
+def get_perplexity_response(prompt, conversation_history, image_data=None, temperature=0.7, model_name="pplx-70b-online"):
+    """
+    Get a response from Perplexity with multimodal inputs.
+    """
+    try:
+        # Initialize Perplexity client
+        client = Perplexity(api_key=os.getenv("PERPLEXITY_API_KEY"))
+        
+        # Convert conversation history
+        messages = []
+        for msg in conversation_history[:-1]:
+            role = "user" if msg["role"] == "user" else "assistant"
+            
+            # Basic text content
+            message_content = {"role": role, "content": msg["content"]}
+            messages.append(message_content)
+        
+        # Prepare the current message
+        current_content = prompt
+        
+        # Add image reference if provided
+        if image_data:
+            # Format may vary based on Perplexity's API
+            current_content = f"{prompt}\n\n[Image attached]"
+            # Note: As of April 2025, check Perplexity's latest documentation for proper image handling
+        
+        # Add the current message
+        messages.append({"role": "user", "content": current_content})
+        
+        # Generate response
+        response = client.chat.completions.create(
+            model=model_name,
+            messages=messages,
+            temperature=temperature,
+        )
+        
+        return response.choices[0].message.content
+    
+    except Exception as e:
+        return f"Error with Perplexity: {str(e)}"
+```
+
+## Key Features Implementation
+
+### Image Analysis Implementation
+
+For image analysis across different models:
+
+```python
+def analyze_image(provider, image_path, prompt, temperature=0.7):
+    """
+    Analyze an image using the specified provider.
+    
+    Args:
+        provider (str): "gemini", "vertex", "openai", "anthropic", or "perplexity"
+        image_path (str): Path to the image file
+        prompt (str): Text prompt describing what to analyze
+        temperature (float): Generation temperature
+        
+    Returns:
+        str: Analysis result
+    """
+    try:
+        # Read and encode the image
+        with open(image_path, "rb") as image_file:
+            image_bytes = image_file.read()
+            image_base64 = base64.b64encode(image_bytes).decode("utf-8")
+        
+        # Create minimal conversation history with just this prompt
+        conversation_history = [{"role": "user", "content": prompt, "image": image_base64}]
+        
+        # Route to appropriate provider
+        if provider.lower() == "gemini":
+            return get_gemini_response(prompt, conversation_history, image_data=image_base64, temperature=temperature)
+        elif provider.lower() == "vertex":
+            return get_vertex_ai_response(prompt, conversation_history, image_data=image_base64, temperature=temperature)
+        elif provider.lower() == "openai":
+            return get_openai_response(prompt, conversation_history, image_data=image_base64, temperature=temperature)
+        elif provider.lower() == "anthropic":
+            return get_anthropic_response(prompt, conversation_history, image_data=image_base64, temperature=temperature)
+        elif provider.lower() == "perplexity":
+            return get_perplexity_response(prompt, conversation_history, image_data=image_base64, temperature=temperature)
+        else:
+            return "Invalid provider specified"
+    
+    except Exception as e:
+        return f"Error analyzing image: {str(e)}"
+```
+
+### Audio Processing Implementation
+
+For audio analysis:
+
+```python
+def process_audio(provider, audio_path, prompt, temperature=0.7):
+    """
+    Process audio using the specified provider.
+    
+    Args:
+        provider (str): "gemini", "vertex", "openai"
+        audio_path (str): Path to the audio file
+        prompt (str): Text prompt describing what to process
+        temperature (float): Generation temperature
+        
+    Returns:
+        str: Processing result
+    """
+    try:
+        # Read and encode the audio
+        with open(audio_path, "rb") as audio_file:
+            audio_bytes = audio_file.read()
+            audio_base64 = base64.b64encode(audio_bytes).decode("utf-8")
+        
+        # Create minimal conversation history
+        conversation_history = [{"role": "user", "content": prompt, "audio": audio_base64}]
+        
+        # Route to appropriate provider
+        if provider.lower() == "gemini":
+            return get_gemini_response(prompt, conversation_history, audio_data=audio_base64, temperature=temperature)
+        elif provider.lower() == "vertex":
+            return get_vertex_ai_response(prompt, conversation_history, audio_data=audio_base64, temperature=temperature)
+        elif provider.lower() == "openai":
+            return get_openai_response(prompt, conversation_history, audio_data=audio_base64, temperature=temperature)
+        else:
+            return "This provider does not support audio processing or is not implemented"
+    
+    except Exception as e:
+        return f"Error processing audio: {str(e)}"
+```
+
+### Streaming Response Implementation
+
+For streaming responses:
+
+```python
+def stream_response(provider, prompt, conversation_history, image_data=None, audio_data=None, temperature=0.7):
+    """
+    Stream a response from the specified provider.
+    
+    Args:
+        provider (str): "gemini", "vertex", "openai", "anthropic"
+        prompt (str): Text prompt
+        conversation_history (list): List of message dictionaries
+        image_data (str, optional): Base64-encoded image data
+        audio_data (str, optional): Base64-encoded audio data
+        temperature (float): Generation temperature
+        
+    Returns:
+        Generator: Yields response chunks
+    """
+    try:
+        if provider.lower() == "gemini":
+            # Initialize Gemini
+            genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+            model = genai.GenerativeModel("gemini-1.5-pro-preview-03-25")
+            
+            # Prepare content parts
+            content_parts = []
+            if image_data:
+                image_bytes = base64.b64decode(image_data)
+                image = PIL.Image.open(BytesIO(image_bytes))
+                content_parts.append(image)
+            if audio_data:
+                audio_bytes = base64.b64decode(audio_data)
+                content_parts.append({"mime_type": "audio/mp3", "data": audio_bytes})
+            content_parts.append(prompt)
+            
+            # Prepare chat history
+            chat_history = []
+            for msg in conversation_history[:-1]:
+                role = "user" if msg["role"] == "user" else "model"
+                chat_history.append({"role": role, "parts": [msg["content"]]})
+            
+            # Start a chat
+            chat = model.start_chat(history=chat_history)
+            
+            # Stream response
+            for chunk in chat.send_message(content_parts, 
+                                          generation_config={"temperature": temperature},
+                                          stream=True):
+                if chunk.text:
+                    yield chunk.text
+        
+        elif provider.lower() == "openai":
+            # Initialize OpenAI
+            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            
+            # Convert history to OpenAI format
+            messages = []
+            for msg in conversation_history[:-1]:
+                role = "user" if msg["role"] == "user" else "assistant"
+                messages.append({"role": role, "content": msg["content"]})
+            
+            # Add current message
+            current_content = []
+            current_content.append({"type": "text", "text": prompt})
+            if image_data:
+                current_content.append({
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/jpeg;base64,{image_data}"
+                    }
+                })
+            
+            messages.append({"role": "user", "content": current_content})
+            
+            # Stream response
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=messages,
+                temperature=temperature,
+                stream=True
+            )
+            
+            # Yield chunks
+            for chunk in response:
+                if chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
+        
+        else:
+            yield f"Streaming not implemented for {provider}"
+    
+    except Exception as e:
+        yield f"Error streaming response: {str(e)}"
+```
+
+## Integration with the Existing App
+
+To integrate these implementations with the provided app.py, we need to:
+
+1. Update the utility functions in the `utils/models.py` file
+2. Enhance the app.py file to support streaming responses
+3. Add proper error handling and fallbacks
+
+### 1. Update utils/models.py
+
+First, ensure the `utils/models.py` file contains our multimodal implementations:
+
+```python
+# utils/models.py
+import os
+import base64
+from io import BytesIO
+import PIL.Image
+
+# Import necessary libraries
+import google.generativeai as genai
+from google.cloud import aiplatform
+from vertexai.preview.generative_models import GenerativeModel, Part
+from openai import OpenAI
+from anthropic import Anthropic
+from perplexity import Perplexity
+
+# Add all the implementations from above:
+# - get_gemini_response
+# - get_vertex_ai_response
+# - get_openai_response
+# - get_anthropic_response
+# - get_perplexity_response
+# - get_gemini_streaming_response
+# - analyze_image
+# - process_audio
+# - stream_response
+```
+
+### 2. Enhance app.py for Streaming
+
+Add streaming capabilities to the main Streamlit app:
+
+```python
+# Add this to app.py
+
+def stream_ai_response(model_name, user_input, messages, image_data=None, audio_data=None, temperature=0.7):
+    """
+    Stream AI response for interactive display
+    """
+    placeholder = st.empty()
+    full_response = ""
+    
+    # Get the model's base provider
+    provider = None
+    if "gemini" in model_name.lower():
+        provider = "gemini"
+    elif "gpt" in model_name.lower() or "openai" in model_name.lower():
+        provider = "openai"
+    # Add other providers as needed
+    
+    if not provider:
+        placeholder.markdown("Streaming not supported for this model")
+        return "Streaming not supported for this model"
+    
+    # Use the streaming function
+    generator = stream_response(
+        provider=provider,
+        prompt=user_input,
+        conversation_history=messages,
+        image_data=image_data,
+        audio_data=audio_data,
+        temperature=temperature
+    )
+    
+    # Display the streaming response
+    for chunk in generator:
+        full_response += chunk
+        placeholder.markdown(full_response + "▌")
+    
+    # Remove the cursor at the end
+    placeholder.markdown(full_response)
+    
+    return full_response
+```
+
+### 3. Update the Main Chat Input Handler
+
+Modify the chat input handler to support streaming responses:
+
+```python
+# In the main() function, modify the user input handler:
+
+if user_input := st.chat_input("Message the AI...", key="chat_input"):
+    # ... existing code ...
+    
+    # Add user message to chat
+    st.session_state.messages.append(user_message)
+    
+    # Get AI response based on selected model
+    with st.spinner(f"Thinking... using {st.session_state.current_model}"):
+        try:
+            image_data = user_message.get("image")
+            audio_data = user_message.get("audio")
+            model_name = st.session_state.current_model.lower()
+            
+            # Extract model call sign from selected model if available
+            model_call_sign = None
+            if "(" in st.session_state.current_model and ")" in st.session_state.current_model:
+                model_call_sign = st.session_state.current_model.split("(")[1].split(")")[0]
+            
+            # Add a streaming toggle
+            if st.session_state.get("enable_streaming", True):
+                # Use streaming response
+                ai_response = stream_ai_response(
+                    model_name=st.session_state.current_model,
+                    user_input=user_input,
+                    messages=st.session_state.messages,
+                    image_data=image_data,
+                    audio_data=audio_data,
+                    temperature=st.session_state.temperature
+                )
+            else:
+                # Use the existing non-streaming implementations
+                # ... existing code for different models ...
+```
+
+## Advanced Features
+
+### 1. Multi-turn Conversation with Multimodal Content
+
+Enhance conversations to remember images and audio across turns:
+
+```python
+def add_reference_to_previous_media(messages):
+    """Add references to previously shared media in the conversation context"""
+    # Create a new list to store messages with references
+    context_enhanced_messages = []
+    
+    # Track shared media
+    shared_images = []
+    shared_audio = []
+    
+    # Process all messages
+    for i, msg in enumerate(messages):
+        # Keep the original message
+        context_enhanced_messages.append(msg.copy())
+        
+        # If this is a user message with media, track it
+        if msg["role"] == "user":
+            if "image" in msg:
+                shared_images.append((i, "Image shared by user"))
+            if "audio" in msg:
+                shared_audio.append((i, "Audio shared by user"))
+        
+        # For the current message, add context about previous media
+        if i == len(messages) - 1 and msg["role"] == "user":
+            content = msg["content"]
+            
+            # Add references to images if there are any
+            if shared_images and "image" not in msg:
+                references = "\n\nNote: Previously in this conversation, "
+                if len(shared_images) == 1:
+                    references += "an image was shared."
+                else:
+                    references += f"{len(shared_images)} images were shared."
+                
+                # Add this context to the message
+                context_enhanced_messages[-1]["content"] = content + references
+            
+            # Add references to audio if there are any
+            if shared_audio and "audio" not in msg:
+                references = "\n\nNote: Previously in this conversation, "
+                if len(shared_audio) == 1:
+                    references += "an audio clip was shared."
+                else:
+                    references += f"{len(shared_audio)} audio clips were shared."
+                
+                # Add this context to the message if not already added
+                if "Note: Previously" not in context_enhanced_messages[-1]["content"]:
+                    context_enhanced_messages[-1]["content"] = context_enhanced_messages[-1]["content"] + references
+                else:
+                    context_enhanced_messages[-1]["content"] = context_enhanced_messages[-1]["content"].replace(".", ", and " + references[references.rfind("an"):].rstrip(".") + ".")
+    
+    return context_enhanced_messages
+```
+
+### 2. Multi-modal Input Support for Different Image Formats
+
+Support various image formats across providers:
+
+```python
+def preprocess_image(image_path, target_format="JPEG", max_size=(1024, 1024)):
+    """
+    Preprocess images for compatibility with different LLM providers
+    
+    Args:
+        image_path (str): Path to the image file
+        target_format (str): Target format (JPEG, PNG)
+        max_size (tuple): Maximum dimensions
+    
+    Returns:
+        str: Base64 encoded image in the target format
+    """
+    try:
+        # Open and resize the image
+        image = PIL.Image.open(image_path)
+        
+        # Resize if necessary
+        if image.size[0] > max_size[0] or image.size[1] > max_size[1]:
+            image.thumbnail(max_size)
+        
+        # Convert to target format
+        buffer = BytesIO()
+        image.save(buffer, format=target_format)
+        
+        # Encode to base64
+        image_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+        
+        return image_base64
+    
+    except Exception as e:
+        print(f"Error preprocessing image: {e}")
+        return None
+```
+
+## Best Practices and Optimization
+
+### 1. Caching LLM Responses
+
+Implement response caching to improve performance:
+
+```python
+import hashlib
+import json
+import shelve
+
+def get_cache_key(model, prompt, temperature, image_data=None, audio_data=None):
+    """Generate a unique cache key based on inputs"""
+    # Create a dictionary of all input parameters
+    inputs = {
+        "model": model,
+        "prompt": prompt,
+        "temperature": temperature,
+        "image_data": image_data[:100] if image_data else None,  # First 100 chars as fingerprint
+        "audio_data": audio_data[:100] if audio_data else None,  # First 100 chars as fingerprint
+    }
+    
+    # Convert to a string and hash
+    input_str = json.dumps(inputs, sort_keys=True)
+    return hashlib.md5(input_str.encode()).hexdigest()
+
+def get_cached_response(provider, prompt, temperature=0.7, image_data=None, audio_data=None):
+    """Get response with caching"""
+    cache_key = get_cache_key(provider, prompt, temperature, image_data, audio_data)
+    
+    # Try to get from cache
+    with shelve.open("llm_response_cache") as cache:
+        if cache_key in cache:
+            return cache[cache_key]
+    
+    # Generate new response if not in cache
+    if provider.lower() == "gemini":
+        response = get_gemini_response(prompt, [], image_data=image_data, audio_data=audio_data, temperature=temperature)
+    elif provider.lower() == "openai":
+        response = get_openai_response(prompt, [], image_data=image_data, audio_data=audio_data, temperature=temperature)
+    # Add other providers
+    
+    # Cache the response
+    with shelve.open("llm_response_cache") as cache:
+        cache[cache_key] = response
+    
+    return response
+```
+
+### 2. Error Handling and Fallbacks
+
+Implement robust error handling and provider fallbacks:
+
+```python
+def get_response_with_fallback(prompt, conversation_history, image_data=None, audio_data=None, 
+                              primary_provider="gemini", fallback_provider="openai", temperature=0.7):
+    """
+    Get a response with automatic fallback if primary provider fails
+    """
+    try:
+        # Try primary provider first
+        if primary_provider.lower() == "gemini":
+            response = get_gemini_response(prompt, conversation_history, image_data, audio_data, temperature)
+        elif primary_provider.lower() == "openai":
+            response = get_openai_response(prompt, conversation_history, image_data, audio_data, temperature)
+        # Add other providers
+        
+        # If we got a response that indicates an error, try the fallback
+        if "Error with" in response or "not supported" in response.lower():
+            raise Exception(f"Primary provider failed: {response}")
+            
+        return response
+    
+    except Exception as e:
+        print(f"Primary provider failed, using fallback: {str(e)}")
+        
+        # Use fallback
+        try:
+            if fallback_provider.lower() == "gemini":
+                return get_gemini_response(prompt, conversation_history, image_data, audio_data, temperature)
+            elif fallback_provider.lower() == "openai":
+                return get_openai_response(prompt, conversation_history, image_data, audio_data, temperature)
+            # Add other providers
+            
+        except Exception as fallback_error:
+            return f"Both primary and fallback providers failed. Primary error: {str(e)}. Fallback error: {str(fallback_error)}"
+```
+
+## Conclusion
+
+Multimodal live APIs represent the cutting edge of AI interaction, enabling richer, more dynamic conversations with AI models. By implementing the functions outlined in this guide, your Streamlit application can leverage the full potential of these APIs across multiple providers.
+
+Key takeaways:
+- Gemini provides the most comprehensive native multimodal capabilities
+- Each provider has different strengths and specialized features
+- Implementing streaming responses creates more engaging user experiences
+- Proper error handling and fallbacks ensure robust application performance
+- Caching can significantly improve response times for repeated queries
+
+By incorporating these implementations into your app.py file, you'll create a versatile AI chat application capable of handling text, images, audio, and even more complex interactions as these models continue to evolve.
+
+Citations:
+[1] https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/62143253/461e376c-f3d8-4da1-a3b6-434a6ee3e4e4/paste.txt
+[2] https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/62143253/02db732f-ff9f-4b26-8f99-1ad449803b7f/paste-2.txt
+[3] https://github.com/daddyholnes/Gemini-PlayPod
+[4] https://www.semanticscholar.org/paper/464c161277ae9aa181d47716a1284c181dbe5b9d
+[5] https://www.reddit.com/r/googlecloud/comments/18hp6jc/is_it_possible_to_use_gemini_api_in_regions_where/
+[6] https://www.reddit.com/r/ClaudeAI/comments/1jrpi69/anyone_fully_switching_to_gemini_25_ive_briefly/
+[7] https://www.semanticscholar.org/paper/2e9b90cc23569d6cb63118555bb4ab25620bda66
+[8] https://www.reddit.com/r/googlecloud/comments/1j49uz7/agent_starter_pack_build_deploy_genai_agents_on/
+[9] https://www.reddit.com/r/singularity/comments/1jl1eti/man_the_new_gemini_25_pro_0325_is_a_breakthrough/
+[10] https://www.reddit.com/r/singularity/comments/1hbu83r/gemini_20_flash_is_here/
+[11] https://discuss.ai.google.dev/t/using-vertex-ai-multimodal-live-api-with-image-inputs-in-a-real-time-unity-app-scenario/78498
+[12] https://github.com/heiko-hotz/gemini-multimodal-live-dev-guide
+[13] https://www.reddit.com/r/Bard/comments/1he4k6f/has_anyone_built_an_app_to_use_gemini_20_live/
+[14] https://developers.googleblog.com/en/gemini-2-0-level-up-your-apps-with-real-time-multimodal-interactions/
+[15] https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal-live-api
+[16] https://ai.google.dev/gemini-api/docs/live
+[17] https://cloud.google.com/vertex-ai/generative-ai/docs/model-reference/multimodal-live
+[18] https://www.reddit.com/r/ArtificialInteligence/comments/1fp0vcy/the_gemini_live_system_prompt_its_not_a_real/
+[19] https://www.reddit.com/r/singularity/comments/1hc9ykv/project_astra_is_the_coolest_thing_ive_seen_since/
+[20] https://www.reddit.com/r/singularity/comments/1avmbp2/feeding_gemini_15_pro_the_entire_selfoperating/
+[21] https://www.reddit.com/r/singularity/comments/1hc930t/please_try_gemini_flash_20_streaming_live_video/
+[22] https://www.reddit.com/r/Bard/comments/1and9gu/gemini_isnt_that_bad_why_do_so_many_people_say_it/
+[23] https://www.reddit.com/r/Bard/comments/1it2h2b/showcase_of_the_project_i_build_that_utilizes/
+[24] https://www.reddit.com/r/singularity/comments/1bm2hp1/those_of_us_who_now_how_to_fully_leverage_googles/
+[25] https://www.reddit.com/r/Bard/comments/1gjm2g3/different_results_form_gemini_api_and_gemini_llm/
+[26] https://www.reddit.com/r/Bard/comments/1g8ktp7/gemini_is_the_worst_ai_product_in_the_market/
+[27] https://www.reddit.com/r/Bard/comments/18hmntw/is_there_a_functional_difference_between_using/
+[28] https://www.reddit.com/r/OpenAI/comments/18c6kx3/introducing_gemini_our_largest_and_most_capable/
+[29] https://www.reddit.com/r/OpenAI/comments/1hd2r2b/gemini_20_is_what_4o_was_supposed_to_be/
+[30] https://www.reddit.com/r/GoogleGeminiAI/comments/1j6a9tu/is_there_a_way_to_allow_gemini_control_my_chrome/
+[31] https://www.reddit.com/r/singularity/comments/1hcrmbg/google_gemini_20_realtime_ai_is_insane_watch_me/
+[32] https://github.com/GoogleCloudPlatform/generative-ai/blob/main/gemini/multimodal-live-api/real_time_rag_retail_gemini_2_0.ipynb
+[33] https://firebase.google.com/docs/vertex-ai/text-gen-from-multimodal
+[34] https://codelabs.developers.google.com/devsite/codelabs/gemini-multimodal-chat-assistant-python
+[35] https://docs.pipecat.ai/guides/features/gemini-multimodal-live
+[36] https://ai.google.dev/gemini-api/docs/multimodal-live
+[37] https://github.com/GoogleCloudPlatform/generative-ai/blob/main/gemini/multimodal-live-api/intro_multimodal_live_api_genai_sdk.ipynb
+[38] https://github.com/GoogleCloudPlatform/generative-ai/blob/main/gemini/multimodal-live-api/intro_multimodal_live_api.ipynb
+[39] https://colab.research.google.com/github/google-gemini/cookbook/blob/main/quickstarts/Get_started_LiveAPI.ipynb
+[40] https://www.youtube.com/watch?v=cvtFdzUQ2Es
+
+---
+Answer from Perplexity: pplx.ai/share
