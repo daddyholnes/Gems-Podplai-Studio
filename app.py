@@ -367,9 +367,7 @@ def main():
         # Close the chat container div
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # This chat input is handled by the main one at line ~678 (don't use duplicate keys)
-        # Keeping this section as a placeholder
-            
+        # This space is for the main chat input defined at line ~662
     # Right sidebar panel exactly like Google Gemini UI
     with right_sidebar:
         # 1. Model info
