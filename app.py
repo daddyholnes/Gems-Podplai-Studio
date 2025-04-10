@@ -272,9 +272,58 @@ def main():
     # Right sidebar for tools panel exactly as in Google Gemini
     right_col = st.container()
     
-    # Create a column layout - main content and right sidebar
+    # Create a column layout - left sidebar, main content and right sidebar
     # Create a 3-column layout with more space for the left sidebar
     left_sidebar, main_content, right_sidebar = st.columns([1.2, 5.8, 2])
+    
+    # Left sidebar with file upload area
+    with left_sidebar:
+        # Add drag and drop file area
+        st.markdown("""
+        <div style="margin-bottom: 20px;">
+            <h3 style="font-size: 1.1rem; margin-bottom: 10px; color: white;">Upload files</h3>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Custom drag and drop area styled like Google's
+        st.markdown("""
+        <style>
+        .drag-drop-area {
+            background-color: #1e1e1e;
+            border: 1px dashed #555;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+        .drag-drop-area:hover {
+            border-color: #8c52ff;
+            background-color: #2a2a2a;
+        }
+        </style>
+        <div class="drag-drop-area">
+            <p style="color: white; margin-bottom: 8px;">Drag and drop file here</p>
+            <p style="color: #888; font-size: 0.8rem;">Limit 200MB per file • JPG, JPEG, PNG</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Browse files button
+        st.button("Browse files", key="browse_files_btn", use_container_width=True)
+        
+        # Recent files section
+        st.markdown("""
+        <div style="margin-top: 30px; margin-bottom: 10px;">
+            <h3 style="font-size: 1.1rem; color: white;">Recent files</h3>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Empty state for recent files
+        st.markdown("""
+        <div style="color: #888; font-size: 0.9rem; padding: 15px 0;">
+            No recent files found
+        </div>
+        """, unsafe_allow_html=True)
     
     # Main content area with chat UI
     with main_content:
@@ -619,46 +668,65 @@ def main():
                 st.rerun()
     # Right sidebar panel exactly like Google Gemini UI
     with right_sidebar:
-        # 1. Model info
+        # More compact sidebar with model, tokens, and temperature sections combined
         st.markdown("""
-        <div style="display: flex; align-items: center; margin-bottom: 15px;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#888" viewBox="0 0 24 24">
-                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/>
-                <path d="M7 10h10v2H7z"/>
-            </svg>
-            <span style="margin-left: 10px; color: white; font-weight: 500;">Model</span>
+        <style>
+        /* Make the right sidebar more compact */
+        .compact-sidebar-section {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }
+        .compact-sidebar-title {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .compact-sidebar-icon {
+            margin-right: 8px;
+        }
+        .compact-sidebar-content {
+            background-color: #1e1e1e;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        </style>
+        
+        <div class="compact-sidebar-section">
+            <div class="compact-sidebar-title">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#888" viewBox="0 0 24 24">
+                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/>
+                    <path d="M7 10h10v2H7z"/>
+                </svg>
+                <span style="margin-left: 8px; color: white; font-weight: 500; font-size: 14px;">Model</span>
+            </div>
+            <div class="compact-sidebar-content">
+                <div style="font-size: 14px; color: white; font-weight: 500;">Gemini 2.0 Pro</div>
+                <div style="font-size: 12px; color: #888; margin-top: 3px;">Preview (03-26)</div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
         
+        # 2 & 3. Token count and Temperature in compact format
         st.markdown("""
-        <div style="background-color: #1e1e1e; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
-            <div style="font-size: 14px; color: white; font-weight: 500;">Gemini 2.0 Pro</div>
-            <div style="font-size: 12px; color: #888; margin-top: 5px;">Preview (03-26)</div>
+        <div class="compact-sidebar-section">
+            <div class="compact-sidebar-title">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#888" viewBox="0 0 24 24">
+                    <path d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-9 2h2v2h-2V4zM9 8h2v2H9V8zm-4 8h2v2H5v-2zm0-8h2v2H5V8zm0-4h2v2H5V4zm4 12h2v2H9v-2zm4 0h2v2h-2v-2zm0-4h2v2h-2v-2zm0-8h2v2h-2V4zm4 4h2v2h-2V8zm0 8h2v2h-2v-2zm0-4h2v2h-2v-2zm0-8h2v2h-2V4z"/>
+                </svg>
+                <span style="margin-left: 8px; color: white; font-weight: 500; font-size: 14px;">Token count</span>
+            </div>
+            <div style="color: #888; font-size: 14px; margin-bottom: 10px;">0 / 1048576</div>
         </div>
-        """, unsafe_allow_html=True)
-        
-        # 2. Token count
-        st.markdown("""
-        <div style="display: flex; align-items: center; margin-bottom: 15px; margin-top: 30px;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#888" viewBox="0 0 24 24">
-                <path d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-9 2h2v2h-2V4zM9 8h2v2H9V8zm-4 8h2v2H5v-2zm0-8h2v2H5V8zm0-4h2v2H5V4zm4 12h2v2H9v-2zm4 0h2v2h-2v-2zm0-4h2v2h-2v-2zm0-8h2v2h-2V4zm4 4h2v2h-2V8zm0 8h2v2h-2v-2zm0-4h2v2h-2v-2zm0-8h2v2h-2V4z"/>
-            </svg>
-            <span style="margin-left: 10px; color: white; font-weight: 500;">Token count</span>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("""
-        <div style="color: #888; font-size: 14px; margin-bottom: 20px;">0 / 1048576</div>
-        """, unsafe_allow_html=True)
-        
-        # 3. Temperature
-        st.markdown("""
-        <div style="display: flex; align-items: center; margin-bottom: 15px; margin-top: 30px;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#888" viewBox="0 0 24 24">
-                <path d="M15 13V5c0-1.66-1.34-3-3-3S9 3.34 9 5v8c-1.21.91-2 2.37-2 4 0 2.76 2.24 5 5 5s5-2.24 5-5c0-1.63-.79-3.09-2-4zm-4-8c0-.55.45-1 1-1s1 .45 1 1h-2z"/>
-            </svg>
-            <span style="margin-left: 10px; color: white; font-weight: 500;">Temperature</span>
-        </div>
+
+        <div class="compact-sidebar-section">
+            <div class="compact-sidebar-title">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#888" viewBox="0 0 24 24">
+                    <path d="M15 13V5c0-1.66-1.34-3-3-3S9 3.34 9 5v8c-1.21.91-2 2.37-2 4 0 2.76 2.24 5 5 5s5-2.24 5-5c0-1.63-.79-3.09-2-4zm-4-8c0-.55.45-1 1-1s1 .45 1 1h-2z"/>
+                </svg>
+                <span style="margin-left: 8px; color: white; font-weight: 500; font-size: 14px;">Temperature</span>
+            </div>
         """, unsafe_allow_html=True)
         
         # Temperature slider that matches the design
