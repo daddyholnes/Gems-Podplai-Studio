@@ -89,109 +89,166 @@ def main():
     # Initialize database
     init_db()
     
-    # Apply custom CSS to move sidebar to the right side
+    # Apply custom styling to match Google Gemini UI exactly
     st.markdown("""
     <style>
+    /* Dark background for the app */
+    .stApp {
+        background-color: #0e1117;
+    }
+    
+    /* Left sidebar styling */
     [data-testid="stSidebar"] {
+        background-color: #0e1117;
+        border-right: 1px solid #333;
+    }
+    
+    /* Hide default Streamlit hamburger menu */
+    section[data-testid="stSidebarUserContent"] {
+        padding-top: 0rem;
+    }
+    
+    /* Make the main content full width */
+    .main .block-container {
+        max-width: 100%;
+        padding-top: 1rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    /* Right sidebar styling */
+    .right-sidebar {
         position: fixed;
         right: 0;
         top: 0;
-        width: 20rem;
+        width: 250px;
         height: 100vh;
-        z-index: 1000;
-        overflow-y: auto;
-        background-color: #0e1117;
         padding: 1rem;
-    }
-    section[data-testid="stSidebarContent"] {
         background-color: #0e1117;
+        border-left: 1px solid #333;
+        overflow-y: auto;
+        z-index: 10;
     }
-    .main > div {
-        margin-right: 20rem;
-        max-width: calc(100% - 25rem);
+    
+    /* Main content area with space for the right sidebar */
+    .main-content {
+        margin-right: 250px;
+    }
+    
+    /* Toggle button styling */
+    .toggle-container {
+        margin-top: 5px;
+    }
+    .toggle-button {
+        background-color: #333;
+        border-radius: 15px;
+        display: inline-block;
+        height: 20px;
+        position: relative;
+        width: 40px;
+    }
+    .toggle-button.active {
+        background-color: #4285f4;
+    }
+    .toggle-button::after {
+        background-color: white;
+        border-radius: 50%;
+        content: '';
+        height: 16px;
+        left: 2px;
+        position: absolute;
+        top: 2px;
+        transition: all 0.3s;
+        width: 16px;
+    }
+    .toggle-button.active::after {
+        left: 22px;
     }
     </style>
     """, unsafe_allow_html=True)
     
-    # Set up sidebar to match exactly what's in the screenshot
+    # Left sidebar matching the Google Gemini interface
     with st.sidebar:
-        # Model selection at the very top
-        st.subheader("Model")
+        # App selector at top
+        st.text_input("app", value="Gemini Studio", disabled=True, label_visibility="collapsed")
         
-        # Simple model selection that matches the screenshot
-        selected_model = st.selectbox(
-            "Select AI Model",
-            options=["Gemini 2.0 Pro (gemini-1.5-pro)"],
-            index=0,
-            help="Choose the AI model to use for conversation"
-        )
+        # Gemini Studio link
+        st.markdown("""
+        <div style="padding: 10px 0; cursor: pointer;">
+            <span style="color: white; font-weight: 500;">Gemini Studio</span>
+        </div>
+        """, unsafe_allow_html=True)
         
-        if selected_model != st.session_state.current_model:
-            st.session_state.current_model = selected_model
-            st.rerun()
-        
-        # Temperature slider
-        st.subheader("Temperature")
-        
-        temperature = st.slider(
-            "Adjust creativity", 
-            min_value=0.0, 
-            max_value=1.0, 
-            value=0.7, 
-            step=0.01,
-            help="Lower values = more deterministic, higher values = more creative",
-            key="temperature_slider"
-        )
-        
-        if temperature != st.session_state.temperature:
-            st.session_state.temperature = temperature
-        
-        # Horizontal separator    
-        st.markdown("<hr>", unsafe_allow_html=True)
-            
         # Chat Library section
-        st.subheader("Chat Library")
+        st.markdown("""
+        <div style="margin-top: 20px; margin-bottom: 10px;">
+            <span style="color: #888; font-size: 14px; font-weight: 500;">CHAT LIBRARY</span>
+        </div>
+        """, unsafe_allow_html=True)
         
         # Search input
-        search_text = st.text_input("Search chats", key="search_chats", placeholder="Search by model or content")
+        search_text = st.text_input("Search chats", key="search_chats", placeholder="Search for past prompts")
         
         # Display message if no chats are found
-        st.text("No previous conversations found")
+        st.markdown("""
+        <div style="color: #888; font-size: 12px; padding: 5px 0;">
+            No previous conversations found
+        </div>
+        """, unsafe_allow_html=True)
         
         # Horizontal separator
-        st.markdown("<hr>", unsafe_allow_html=True)
+        st.markdown("<hr style='margin: 20px 0; border-color: #333;'>", unsafe_allow_html=True)
         
         # Capabilities section
-        st.subheader("Capabilities")
-        st.markdown("⬜ Text & Code")
-        st.markdown("🖼️ Images")
-        st.markdown("🔊 Audio")
+        st.markdown("""
+        <div style="margin-bottom: 10px;">
+            <span style="color: #888; font-size: 14px; font-weight: 500;">CAPABILITIES</span>
+        </div>
+        """, unsafe_allow_html=True)
         
-        # User section will be at the very bottom in a separate expander
-        # We'll hide it here but add it back when needed
+        # Capabilities list
+        st.markdown("""
+        <div style="padding: 5px 0;">
+            <span style="color: white;">📝 Text & Code</span>
+        </div>
+        <div style="padding: 5px 0;">
+            <span style="color: white;">🖼️ Images</span>
+        </div>
+        <div style="padding: 5px 0;">
+            <span style="color: white;">🔊 Audio</span>
+        </div>
+        """, unsafe_allow_html=True)
         
-        # For now, let's put the important stuff at the bottom
+        # Logout button at bottom
+        st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
         if st.button("Logout", use_container_width=True, type="primary", key="logout_bottom"):
             logout_user()
             st.rerun()
     
-    # Main content area (full width, no columns)
-    col_main = st.container()
+    # Right sidebar for tools panel exactly as in Google Gemini
+    right_col = st.container()
     
-    # Main content area for chat UI
-    with col_main:
-        # Main chat area with enhanced Google AI Studio style header
+    # Create a column layout - main content and right sidebar
+    main_content, right_sidebar = st.columns([7, 2])
+    
+    # Main content area with chat UI
+    with main_content:
+        # Main chat area with exactly the header shown in the screenshot
         st.markdown("""
         <div style="text-align: center; padding: 20px 0;">
-            <h1 style="font-size: 2.2rem; margin-bottom: 5px;">Talk with AI live</h1>
+            <h1 style="font-size: 2.2rem; margin-bottom: 5px; color: white;">Talk with AI live</h1>
             <p style="color: #888; font-size: 1.1rem;">Interact with AI models using text, code, images, audio, or upload files</p>
-            <div style="max-width: 600px; margin: 10px auto; padding: 8px; background-color: #0f0f0f; border-radius: 8px; border: 1px solid #333;">
-                <p style="margin: 0; color: #4285f4;">
-                    <strong>Model:</strong> <span id="current-model">{}</span>
-                </p>
-            </div>
         </div>
-        """.format(st.session_state.current_model), unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+        
+        # Model display box exactly as shown in the screenshot
+        st.markdown("""
+        <div style="max-width: 600px; margin: 10px auto; padding: 10px; background-color: rgba(20, 20, 20, 0.6); border-radius: 8px; border: 1px solid #333;">
+            <p style="margin: 0; color: #4285f4; text-align: center;">
+                <span style="color: #4285f4; font-weight: normal;">Model:</span> <span style="color: #4285f4;">Gemini 2.0 Pro (gemini-1.5-pro)</span>
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
         
         # Add custom CSS for improved message container
         st.markdown("""
@@ -310,7 +367,159 @@ def main():
         # Close the chat container div
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # Input options area with tabs for different input types
+        # Chat input area
+        if user_input := st.chat_input("Type something...", key="chat_input"):
+            # Store the user input in session state
+            st.session_state.user_input = user_input
+            
+            # Add the user message to the chat history
+            st.session_state.messages.append({"role": "user", "content": user_input})
+            
+            # Get AI response
+            with st.spinner("AI is thinking..."):
+                # Placeholder for actual API call
+                response = f"This is a simulated response to: {user_input}"
+                
+                # Add the AI response to the chat history
+                st.session_state.messages.append({"role": "assistant", "content": response})
+            
+            # Rerun to update the UI
+            st.rerun()
+            
+    # Right sidebar panel exactly like Google Gemini UI
+    with right_sidebar:
+        # 1. Model info
+        st.markdown("""
+        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#888" viewBox="0 0 24 24">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/>
+                <path d="M7 10h10v2H7z"/>
+            </svg>
+            <span style="margin-left: 10px; color: white; font-weight: 500;">Model</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div style="background-color: #1e1e1e; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+            <div style="font-size: 14px; color: white; font-weight: 500;">Gemini 2.0 Pro</div>
+            <div style="font-size: 12px; color: #888; margin-top: 5px;">Preview (03-26)</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # 2. Token count
+        st.markdown("""
+        <div style="display: flex; align-items: center; margin-bottom: 15px; margin-top: 30px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#888" viewBox="0 0 24 24">
+                <path d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-9 2h2v2h-2V4zM9 8h2v2H9V8zm-4 8h2v2H5v-2zm0-8h2v2H5V8zm0-4h2v2H5V4zm4 12h2v2H9v-2zm4 0h2v2h-2v-2zm0-4h2v2h-2v-2zm0-8h2v2h-2V4zm4 4h2v2h-2V8zm0 8h2v2h-2v-2zm0-4h2v2h-2v-2zm0-8h2v2h-2V4z"/>
+            </svg>
+            <span style="margin-left: 10px; color: white; font-weight: 500;">Token count</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div style="color: #888; font-size: 14px; margin-bottom: 20px;">0 / 1048576</div>
+        """, unsafe_allow_html=True)
+        
+        # 3. Temperature
+        st.markdown("""
+        <div style="display: flex; align-items: center; margin-bottom: 15px; margin-top: 30px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#888" viewBox="0 0 24 24">
+                <path d="M15 13V5c0-1.66-1.34-3-3-3S9 3.34 9 5v8c-1.21.91-2 2.37-2 4 0 2.76 2.24 5 5 5s5-2.24 5-5c0-1.63-.79-3.09-2-4zm-4-8c0-.55.45-1 1-1s1 .45 1 1h-2z"/>
+            </svg>
+            <span style="margin-left: 10px; color: white; font-weight: 500;">Temperature</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Temperature slider that matches the design
+        temperature = st.slider(
+            label="Temperature",
+            min_value=0.0, 
+            max_value=1.0, 
+            value=0.7, 
+            step=0.01,
+            label_visibility="collapsed",
+            key="temperature_sidebar"
+        )
+        
+        if temperature != st.session_state.temperature:
+            st.session_state.temperature = temperature
+        
+        # 4. Tools section
+        st.markdown("""
+        <div style="display: flex; align-items: center; margin-bottom: 15px; margin-top: 30px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#888" viewBox="0 0 24 24">
+                <path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/>
+            </svg>
+            <span style="margin-left: 10px; color: white; font-weight: 500;">Tools</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Toggle switches for tools - these match the exact design
+        st.markdown("""
+        <div style="margin-bottom: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="color: white; font-size: 14px;">Structured output</span>
+                <div class="toggle-button"></div>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="color: white; font-size: 14px;">Code execution</span>
+                <div class="toggle-button"></div>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="color: white; font-size: 14px;">Function calling</span>
+                <div class="toggle-button"></div>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="color: white; font-size: 14px;">Grounding with Google Search</span>
+                <div class="toggle-button"></div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Additional actions section
+        st.markdown("""
+        <div style="margin-top: 30px;">
+            <button style="width: 100%; background-color: transparent; border: 1px solid #555; border-radius: 4px; color: white; padding: 8px 0; font-size: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; cursor: pointer;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="white" viewBox="0 0 24 24" style="margin-right: 8px;">
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                </svg>
+                My Drive
+            </button>
+            
+            <button style="width: 100%; background-color: transparent; border: 1px solid #555; border-radius: 4px; color: white; padding: 8px 0; font-size: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; cursor: pointer;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="white" viewBox="0 0 24 24" style="margin-right: 8px;">
+                    <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
+                </svg>
+                Upload File
+            </button>
+            
+            <button style="width: 100%; background-color: transparent; border: 1px solid #555; border-radius: 4px; color: white; padding: 8px 0; font-size: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; cursor: pointer;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="white" viewBox="0 0 24 24" style="margin-right: 8px;">
+                    <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
+                </svg>
+                Record Audio
+            </button>
+            
+            <button style="width: 100%; background-color: transparent; border: 1px solid #555; border-radius: 4px; color: white; padding: 8px 0; font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="white" viewBox="0 0 24 24" style="margin-right: 8px;">
+                    <path d="M9.4 10.5l4.77-8.26C13.47 2.09 12.75 2 12 2c-2.4 0-4.6.85-6.32 2.25l3.66 6.35.06-.1zM21.54 9c-.92-2.92-3.15-5.26-6-6.34L11.88 9h9.66zm.26 1h-7.49l.29.5 4.76 8.25C21 16.97 22 14.61 22 12c0-.69-.07-1.35-.2-2zM8.54 12l-3.9-6.75C3.01 7.03 2 9.39 2 12c0 .69.07 1.35.2 2h7.49l-1.15-2zm-6.08 3c.92 2.92 3.15 5.26 6 6.34L12.12 15H2.46zm11.27 0l-3.9 6.76c.7.15 1.42.24 2.17.24 2.4 0 4.6-.85 6.32-2.25l-3.66-6.35-.93 1.6z"/>
+                </svg>
+                Camera
+            </button>
+        </div>
+        
+        <div style="margin-top: 20px; text-align: right;">
+            <button style="background-color: transparent; border: none; color: #888; font-size: 12px; cursor: pointer;">
+                Safety settings
+            </button>
+        </div>
+        """
+        , unsafe_allow_html=True)
+        
+        # Hidden input tabs for different input types
         input_tabs = st.tabs(["Image Upload", "Audio Recording", "File Upload"])
         
         # Image upload tab
