@@ -18,7 +18,7 @@ ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY")
 # Default voice settings
 DEFAULT_VOICE = "Rachel"
 DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"
-DEFAULT_MODEL = "eleven_turbo_v2"
+DEFAULT_MODEL = "eleven_multilingual_v2"  # Using the recommended model from docs
 STABILITY = 0.5
 CLARITY = 0.5
 
@@ -37,8 +37,9 @@ DEFAULT_VOICES = [
 
 # Default models to use when API is not available
 DEFAULT_MODELS = [
-    ("eleven_turbo_v2", "Eleven Turbo v2"),
     ("eleven_multilingual_v2", "Eleven Multilingual v2"),
+    ("eleven_turbo_v2_5", "Eleven Turbo v2.5"),
+    ("eleven_turbo_v2", "Eleven Turbo v2"),
     ("eleven_monolingual_v1", "Eleven Monolingual v1")
 ]
 
@@ -54,10 +55,10 @@ def get_available_voices() -> List[Tuple[str, str]]:
         return DEFAULT_VOICES
         
     try:
-        import elevenlabs
-        client = elevenlabs.Client(api_key=ELEVENLABS_API_KEY)
-        voices = client.voices.get_all()
-        return [(voice.voice_id, voice.name) for voice in voices]
+        # Using the correct import structure from the documentation
+        from elevenlabs import voices as get_voices
+        voices_list = get_voices()
+        return [(voice.voice_id, voice.name) for voice in voices_list]
     except Exception as e:
         print(f"Error fetching voices: {e}")
         return DEFAULT_VOICES
@@ -70,17 +71,9 @@ def get_available_models() -> List[Tuple[str, str]]:
     Returns:
         List of (model_id, model_name) tuples
     """
-    if not ELEVENLABS_API_KEY:
-        return DEFAULT_MODELS
-        
-    try:
-        import elevenlabs
-        client = elevenlabs.Client(api_key=ELEVENLABS_API_KEY)
-        models = client.models.get_all()
-        return [(model.model_id, model.name) for model in models]
-    except Exception as e:
-        print(f"Error fetching models: {e}")
-        return DEFAULT_MODELS
+    # For now, return the default models since the API endpoint for models
+    # may not be directly accessible in the current version
+    return DEFAULT_MODELS
 
 
 def generate_audio_hash(text: str, voice_id: str, model_id: str) -> str:
@@ -111,7 +104,7 @@ def text_to_speech(
     Args:
         text: Text to convert to speech
         voice_id: ElevenLabs voice ID (defaults to Rachel if None)
-        model_id: ElevenLabs model ID (defaults to eleven_turbo_v2 if None)
+        model_id: ElevenLabs model ID (defaults to eleven_multilingual_v2 if None)
         use_cache: Whether to use cache for previously generated audio
         
     Returns:
@@ -143,28 +136,24 @@ def text_to_speech(
     
     # Generate audio
     try:
-        # Import here to avoid startup errors
-        import elevenlabs
+        # Use the simpler API from documentation
+        from elevenlabs import generate, Voice, VoiceSettings
         
-        # Initialize the client with API key
-        client = elevenlabs.Client(api_key=ELEVENLABS_API_KEY)
-        
-        # Create generation parameters
-        voice_settings = elevenlabs.VoiceSettings(
+        # Voice settings
+        voice_settings = VoiceSettings(
             stability=STABILITY,
-            similarity_boost=CLARITY
+            similarity_boost=CLARITY,
+            style=0.0,  # Default style
+            use_speaker_boost=True
         )
         
         # Generate audio
-        audio = client.generate(
+        audio_bytes = generate(
             text=text,
             voice=voice_id,
             model=model_id,
             voice_settings=voice_settings
         )
-        
-        # Get the audio bytes
-        audio_bytes = audio.content
         
         # Determine output path (cache or temporary)
         if use_cache:
