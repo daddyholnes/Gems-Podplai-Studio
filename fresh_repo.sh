@@ -26,7 +26,7 @@ git commit -m "Initial commit of AI Chat Studio"
 
 echo "Setting up GitHub remote..."
 read -p "Enter your GitHub token: " GITHUB_TOKEN
-git remote add origin https://$GITHUB_TOKEN@github.com/daddyholnes/Gemini-PlayPod.git
+git remote add origin https://$GITHUB_TOKEN@github.com/daddyholnes/Gems-Podplai-Studio.git
 
 echo "Fresh repository is ready. Now you can push with:"
 echo "git push -f origin main"

@@ -7,7 +7,7 @@ This guide provides detailed instructions for setting up and running the AI Chat
 The fastest way to get AI Chat Studio running is through Replit:
 
 1. **Click the Run on Replit button:**  
-   [![Run on Replit](https://replit.com/badge/github/daddyholnes/Gemini-PlayPod)](https://replit.com/github/daddyholnes/Gemini-PlayPod)
+   [![Run on Replit](https://replit.com/badge/github/daddyholnes/Gems-Podplai-Studio)](https://replit.com/github/daddyholnes/Gems-Podplai-Studio)
 
 2. **Set up API keys as Replit Secrets:**
    - Click on "Secrets" in the tools panel
@@ -37,8 +37,8 @@ The fastest way to get AI Chat Studio running is through Replit:
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/daddyholnes/Gemini-PlayPod.git
-cd Gemini-PlayPod
+git clone https://github.com/daddyholnes/Gems-Podplai-Studio.git
+cd Gems-Podplai-Studio
 ```
 
 ### Step 2: Set Up a Virtual Environment
