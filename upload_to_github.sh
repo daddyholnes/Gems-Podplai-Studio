@@ -16,20 +16,21 @@ read -p "Enter your Git user name: " GIT_NAME
 git config --local user.email "$GIT_EMAIL"
 git config --local user.name "$GIT_NAME"
 
-# Check if GitHub token is available in environment or prompt for it
+# Check if GitHub token is available in environment (should be set in Replit Secrets)
 if [ -z "$GITHUB_TOKEN" ]; then
-  echo "Please enter your GitHub Personal Access Token:"
-  read -s GITHUB_TOKEN
+  echo "ERROR: GitHub token not found in environment. Please set the GITHUB_TOKEN secret in Replit."
+  exit 1
 fi
 
-# Check and set the remote repository
+# Check and set the remote repository without displaying sensitive information
 echo "Setting up remote repository..."
+REPO_NAME="Gems-Podplai-Studio"
 if git remote | grep -q "origin"; then
   # Remote already exists, update it
-  git remote set-url origin https://$GITHUB_TOKEN@github.com/daddyholnes/Gemini-PlayPod.git
+  git remote set-url origin "https://${GITHUB_TOKEN}@github.com/daddyholnes/${REPO_NAME}.git"
 else
   # Add new remote
-  git remote add origin https://$GITHUB_TOKEN@github.com/daddyholnes/Gemini-PlayPod.git
+  git remote add origin "https://${GITHUB_TOKEN}@github.com/daddyholnes/${REPO_NAME}.git"
 fi
 
 # Determine which strategy to use (check if repo exists and has content)
@@ -110,4 +111,4 @@ case $PUSH_OPTION in
 esac
 
 echo "Done! Your code has been pushed to GitHub."
-echo "Repository URL: https://github.com/daddyholnes/Gemini-PlayPod"
+echo "Repository URL: https://github.com/daddyholnes/Gems-Podplai-Studio"

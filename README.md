@@ -33,7 +33,7 @@ A modern AI chat interface inspired by Google AI Studio, featuring multi-model c
 The easiest way to get started is by using Replit:
 
 1. Click this button to create a new Replit project:
-   [![Run on Replit](https://replit.com/badge/github/daddyholnes/Gemini-PlayPod)](https://replit.com/github/daddyholnes/Gemini-PlayPod)
+   [![Run on Replit](https://replit.com/badge/github/daddyholnes/Gems-Podplai-Studio)](https://replit.com/github/daddyholnes/Gems-Podplai-Studio)
 
 2. Once the project is loaded, set up your environment secrets:
    - Click on "Secrets" in the tools panel
