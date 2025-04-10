@@ -56,9 +56,10 @@ def get_available_voices() -> List[Tuple[str, str]]:
         
     try:
         # Using the correct import structure from the documentation
-        from elevenlabs import voices as get_voices
-        voices_list = get_voices()
-        return [(voice.voice_id, voice.name) for voice in voices_list]
+        from elevenlabs.client import ElevenLabs
+        client = ElevenLabs(api_key=ELEVENLABS_API_KEY)
+        response = client.voices.get_all()
+        return [(voice.voice_id, voice.name) for voice in response.voices]
     except Exception as e:
         print(f"Error fetching voices: {e}")
         return DEFAULT_VOICES
@@ -136,24 +137,22 @@ def text_to_speech(
     
     # Generate audio
     try:
-        # Use the simpler API from documentation
-        from elevenlabs import generate, Voice, VoiceSettings
+        # Use the client-based API from documentation
+        from elevenlabs.client import ElevenLabs
         
-        # Voice settings
-        voice_settings = VoiceSettings(
-            stability=STABILITY,
-            similarity_boost=CLARITY,
-            style=0.0,  # Default style
-            use_speaker_boost=True
-        )
+        # Initialize client
+        client = ElevenLabs(api_key=ELEVENLABS_API_KEY)
         
         # Generate audio
-        audio_bytes = generate(
+        audio = client.text_to_speech.convert(
             text=text,
-            voice=voice_id,
-            model=model_id,
-            voice_settings=voice_settings
+            voice_id=voice_id,
+            model_id=model_id,
+            output_format="mp3_44100_128"
         )
+        
+        # Get bytes
+        audio_bytes = audio
         
         # Determine output path (cache or temporary)
         if use_cache:
@@ -258,7 +257,7 @@ def render_play_button(message_text: str, key: str):
     
     # Get TTS settings from session state or use defaults
     tts_settings = st.session_state.get('tts_settings', {
-        "voice_id": DEFAULT_VOICE,
+        "voice_id": DEFAULT_VOICE_ID,
         "model_id": DEFAULT_MODEL,
         "use_cache": True
     })
