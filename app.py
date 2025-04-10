@@ -85,10 +85,59 @@ def main():
     # Initialize database
     init_db()
     
-    # Layout with main content area and sidebar - improve ratio for better chat display
-    col1, col2 = st.columns([4, 1])
+    # Three-column layout: Left capabilities, Center chat area, Right sidebar
+    # This improves space utilization by moving capabilities to the left
+    col_left, col_center, col_right = st.columns([1, 3, 1])
     
-    with col1:
+    # Left column for capabilities and features previously in sidebar
+    with col_left:
+        # Capabilities section moved to left column for better space utilization
+        st.subheader("Capabilities")
+        st.markdown("⌨️ Text & Code")
+        st.markdown("🖼️ Images")
+        st.markdown("🔊 Audio")
+        
+        # Current user info
+        st.subheader("User")
+        st.write(f"Current user: {st.session_state.user}")
+        
+        # Voice Command UI
+        st.markdown("""
+        <div style="margin-top: 30px; border-top: 1px solid #333; padding-top: 15px;">
+        <p style="font-size: 0.9rem; margin-bottom: 10px;">Accessibility</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        toggle_voice_commands(st.session_state.voice_commands_enabled)
+        
+        # Logout button
+        if st.button("Logout", use_container_width=True, type="primary"):
+            logout_user()
+            st.experimental_rerun()
+        
+        # Chat Library section
+        st.subheader("Chat Library")
+        
+        # Search input
+        st.text_input("Search chats by model or content", key="search_chats")
+        
+        # Recent conversations display
+        if "current_model" in st.session_state:
+            username = get_current_user()
+            if username:
+                conversations = load_conversations(username)
+                if not conversations:
+                    st.markdown("No previous conversations found")
+                    
+        # Footer
+        st.markdown("""
+        <div style="margin-top: 30px; border-top: 1px solid #333; padding-top: 15px; text-align: center;">
+        <p style="font-size: 0.8rem; color: #888;">AI Chat Studio | 2024</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Center column for chat area
+    with col_center:
         # Main chat area with enhanced Google AI Studio style header
         st.markdown("""
         <div style="text-align: center; padding: 20px 0;">
