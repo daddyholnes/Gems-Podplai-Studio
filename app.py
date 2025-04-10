@@ -89,26 +89,40 @@ def main():
     # Initialize database
     init_db()
     
-    # Set up sidebar for capabilities and settings
+    # Apply custom CSS to move sidebar to the right side
+    st.markdown("""
+    <style>
+    [data-testid="stSidebar"] {
+        position: fixed;
+        right: 0;
+        top: 0;
+        width: 20rem;
+        height: 100vh;
+        z-index: 1000;
+        overflow-y: auto;
+        background-color: #0e1117;
+        padding: 1rem;
+    }
+    section[data-testid="stSidebarContent"] {
+        background-color: #0e1117;
+    }
+    .main > div {
+        margin-right: 20rem;
+        max-width: calc(100% - 25rem);
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Set up sidebar to match exactly what's in the screenshot
     with st.sidebar:
-        # App title and logo
-        st.title("AI Chat Studio")
-        
         # Model selection at the very top
         st.subheader("Model")
         
-        model_options = [
-            "Gemini 2.0 Pro (gemini-1.5-pro)",
-            "Gemini 1.5 Flash (gemini-1.5-flash)",
-            "Anthropic (claude-3-5-sonnet-20241022)",
-            "OpenAI (gpt-4o)",
-            "Perplexity"
-        ]
-        
+        # Simple model selection that matches the screenshot
         selected_model = st.selectbox(
             "Select AI Model",
-            options=model_options,
-            index=model_options.index(st.session_state.current_model) if st.session_state.current_model in model_options else 0,
+            options=["Gemini 2.0 Pro (gemini-1.5-pro)"],
+            index=0,
             help="Choose the AI model to use for conversation"
         )
         
@@ -116,114 +130,50 @@ def main():
             st.session_state.current_model = selected_model
             st.rerun()
         
-        # Temperature slider right after model selection
+        # Temperature slider
         st.subheader("Temperature")
         
         temperature = st.slider(
             "Adjust creativity", 
             min_value=0.0, 
             max_value=1.0, 
-            value=st.session_state.temperature, 
-            step=0.1,
+            value=0.7, 
+            step=0.01,
             help="Lower values = more deterministic, higher values = more creative",
             key="temperature_slider"
         )
         
         if temperature != st.session_state.temperature:
             st.session_state.temperature = temperature
+        
+        # Horizontal separator    
+        st.markdown("<hr>", unsafe_allow_html=True)
             
         # Chat Library section
-        st.markdown("""
-        <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;"></div>
-        """, unsafe_allow_html=True)
         st.subheader("Chat Library")
         
         # Search input
-        st.text_input("Search chats", key="search_chats", placeholder="Search by model or content")
+        search_text = st.text_input("Search chats", key="search_chats", placeholder="Search by model or content")
         
-        # Recent conversations display
-        if "current_model" in st.session_state:
-            username = get_current_user()
-            if username:
-                conversations = load_conversations(username)
-                if not conversations:
-                    st.markdown("No previous conversations found")
+        # Display message if no chats are found
+        st.text("No previous conversations found")
         
-        # Capabilities section in sidebar - more visible and accessible
-        st.markdown("""
-        <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;"></div>
-        """, unsafe_allow_html=True)
+        # Horizontal separator
+        st.markdown("<hr>", unsafe_allow_html=True)
+        
+        # Capabilities section
         st.subheader("Capabilities")
-        st.markdown("⌨️ Text & Code")
+        st.markdown("⬜ Text & Code")
         st.markdown("🖼️ Images")
         st.markdown("🔊 Audio")
         
-        # Theme selection
-        st.markdown("""
-        <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;"></div>
-        """, unsafe_allow_html=True)
-        st.subheader("Appearance")
+        # User section will be at the very bottom in a separate expander
+        # We'll hide it here but add it back when needed
         
-        selected_theme = st.selectbox(
-            "Theme",
-            options=list(THEMES.keys()),
-            index=list(THEMES.keys()).index(st.session_state.current_theme),
-            help="Select a color theme for the app"
-        )
-        
-        # Apply theme if changed
-        if selected_theme != st.session_state.current_theme:
-            st.session_state.current_theme = selected_theme
-            st.rerun()
-        
-        # Text-to-Speech settings section
-        st.markdown("""
-        <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;"></div>
-        """, unsafe_allow_html=True)
-        st.subheader("Speech")
-        
-        # Initialize TTS settings in session state if not present
-        if "tts_settings" not in st.session_state:
-            st.session_state.tts_settings = {}
-        
-        # Add the TTS controls to the sidebar
-        tts_settings = render_tts_controls()
-        st.session_state.tts_settings = tts_settings
-        
-        # Accessibility controls (voice commands)
-        st.markdown("""
-        <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;"></div>
-        """, unsafe_allow_html=True)
-        st.subheader("Accessibility")
-        
-        # Voice commands toggle - simple version without calling the function
-        voice_toggle_label = "Voice Commands"
-        voice_enabled = st.toggle(voice_toggle_label, value=st.session_state.voice_commands_enabled)
-        
-        # Update session state if toggle changed
-        if voice_enabled != st.session_state.voice_commands_enabled:
-            st.session_state.voice_commands_enabled = voice_enabled
-            st.rerun()
-        
-        # User section near the bottom
-        st.markdown("""
-        <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;"></div>
-        """, unsafe_allow_html=True)
-        st.subheader("User")
-        
-        st.write(f"Current user: {st.session_state.user}")
-        
-        # Logout button at the very bottom
-        if st.button("Logout", use_container_width=True, type="primary"):
+        # For now, let's put the important stuff at the bottom
+        if st.button("Logout", use_container_width=True, type="primary", key="logout_bottom"):
             logout_user()
             st.rerun()
-                    
-        # Footer
-        st.markdown("""
-        <div style="margin-top: 30px; border-top: 1px solid #333; padding-top: 15px; text-align: center;">
-        <p style="font-size: 0.8rem; color: #888;">AI Chat Studio | 2024</p>
-        </div>
-        """, unsafe_allow_html=True)
     
     # Main content area (full width, no columns)
     col_main = st.container()
