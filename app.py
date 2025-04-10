@@ -367,24 +367,8 @@ def main():
         # Close the chat container div
         st.markdown('</div>', unsafe_allow_html=True)
         
-        # Chat input area
-        if user_input := st.chat_input("Type something...", key="chat_input"):
-            # Store the user input in session state
-            st.session_state.user_input = user_input
-            
-            # Add the user message to the chat history
-            st.session_state.messages.append({"role": "user", "content": user_input})
-            
-            # Get AI response
-            with st.spinner("AI is thinking..."):
-                # Placeholder for actual API call
-                response = f"This is a simulated response to: {user_input}"
-                
-                # Add the AI response to the chat history
-                st.session_state.messages.append({"role": "assistant", "content": response})
-            
-            # Rerun to update the UI
-            st.rerun()
+        # This chat input is handled by the main one at line ~678 (don't use duplicate keys)
+        # Keeping this section as a placeholder
             
     # Right sidebar panel exactly like Google Gemini UI
     with right_sidebar:
@@ -675,7 +659,7 @@ def main():
                     st.info(f"File '{uploaded_doc.name}' uploaded. Send a message to the AI to analyze it.")
         
         # Simple chat input without emoji functionality
-        if user_input := st.chat_input("Message the AI...", key="chat_input"):
+        if user_input := st.chat_input("Message the AI...", key="chat_input_main"):
             # Check if we're in a cooldown period (prevents double messages)
             if st.session_state.message_cooldown:
                 st.info("Message already sent! Please wait a moment...")
