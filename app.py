@@ -725,60 +725,32 @@ def main():
         # Actions section with real buttons
         st.markdown("""<div style="margin-top: 30px;"></div>""", unsafe_allow_html=True)
         
-        # My Drive button
+        # Extension tools section title
         st.markdown("""
-        <div style="margin-bottom: 10px; display: flex;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="white" viewBox="0 0 24 24" style="margin-right: 8px; margin-top: 2px;">
-                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+        <div style="display: flex; align-items: center; margin-bottom: 15px; margin-top: 30px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#888" viewBox="0 0 24 24">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/>
+                <path d="M7 12h4v-2H7V7h6v2h-4v2h4v2h-4v2h6v-2h-2z"/>
             </svg>
-            <span style="color: white;">My Drive</span>
+            <span style="margin-left: 10px; color: white; font-weight: 500;">Extensions</span>
         </div>
         """, unsafe_allow_html=True)
         
-        if st.button("Open Drive", key="open_drive_btn", use_container_width=True):
-            st.info("Google Drive integration would open here")
-        
-        # Upload File button
+        # Feature buttons section with minimal styling
         st.markdown("""
-        <div style="margin-bottom: 10px; margin-top: 15px; display: flex;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="white" viewBox="0 0 24 24" style="margin-right: 8px; margin-top: 2px;">
-                <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
-            </svg>
-            <span style="color: white;">Upload File</span>
+        <div style="margin-bottom: 20px; color: #888; font-size: 12px;">
+            Use the icons in the chat input to:
+            <ul style="margin-top: 5px; margin-left: 15px;">
+                <li>Access files from Google Drive</li>
+                <li>Upload documents & images</li>
+                <li>Record audio for transcription</li>
+                <li>Capture & analyze photos</li>
+            </ul>
         </div>
         """, unsafe_allow_html=True)
-        
-        if st.button("Select File", key="upload_file_btn", use_container_width=True):
-            # Show the file upload tab
-            st.info("Please use the File Upload tab in the section below")
             
-        # Record Audio button
-        st.markdown("""
-        <div style="margin-bottom: 10px; margin-top: 15px; display: flex;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="white" viewBox="0 0 24 24" style="margin-right: 8px; margin-top: 2px;">
-                <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
-            </svg>
-            <span style="color: white;">Record Audio</span>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if st.button("Start Recording", key="record_audio_btn", use_container_width=True):
-            # Show the audio recording tab
-            st.info("Please use the Audio Recording tab in the section below")
-            
-        # Camera button
-        st.markdown("""
-        <div style="margin-bottom: 10px; margin-top: 15px; display: flex;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="white" viewBox="0 0 24 24" style="margin-right: 8px; margin-top: 2px;">
-                <path d="M9.4 10.5l4.77-8.26C13.47 2.09 12.75 2 12 2c-2.4 0-4.6.85-6.32 2.25l3.66 6.35.06-.1zM21.54 9c-.92-2.92-3.15-5.26-6-6.34L11.88 9h9.66zm.26 1h-7.49l.29.5 4.76 8.25C21 16.97 22 14.61 22 12c0-.69-.07-1.35-.2-2zM8.54 12l-3.9-6.75C3.01 7.03 2 9.39 2 12c0 .69.07 1.35.2 2h7.49l-1.15-2zm-6.08 3c.92 2.92 3.15 5.26 6 6.34L12.12 15H2.46zm11.27 0l-3.9 6.76c.7.15 1.42.24 2.17.24 2.4 0 4.6-.85 6.32-2.25l-3.66-6.35-.93 1.6z"/>
-            </svg>
-            <span style="color: white;">Camera</span>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if st.button("Open Camera", key="open_camera_btn", use_container_width=True):
-            # Show the image upload tab
-            st.info("Please use the Image Upload tab in the section below")
+        # Hidden input tabs for different input types
+        input_tabs = st.tabs(["Image Upload", "Audio Recording", "File Upload"])
         
         # Safety settings link
         st.markdown("""
@@ -786,9 +758,6 @@ def main():
             <a href="#" style="color: #888; font-size: 12px; text-decoration: none;">Safety settings</a>
         </div>
         """, unsafe_allow_html=True)
-        
-        # Hidden input tabs for different input types
-        input_tabs = st.tabs(["Image Upload", "Audio Recording", "File Upload"])
         
         # Image upload tab
         with input_tabs[0]:
