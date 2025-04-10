@@ -1,6 +1,5 @@
 import streamlit as st
 import os
-import os
 import datetime
 import json
 import base64
@@ -22,6 +21,10 @@ from utils.models import (
 # Use Google OAuth for secure authentication
 from utils.google_auth import check_login, logout_user, get_current_user, is_admin
 from utils.database import init_db, save_conversation, load_conversations, get_most_recent_chat
+# Enhanced audio recording with WebRTC
+from utils.webrtc_audio import audio_recorder_ui
+# Text-to-speech with ElevenLabs
+from utils.tts import render_tts_controls, render_play_button, text_to_speech
 
 # Set page configuration
 st.set_page_config(
