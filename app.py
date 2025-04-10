@@ -89,25 +89,20 @@ def main():
     # Initialize database
     init_db()
     
-    # Three-column layout: Left capabilities, Center chat area, Right sidebar
-    # This improves space utilization by moving capabilities to the left
-    col_left, col_center, col_right = st.columns([1, 3, 1])
-    
-    # Left column for capabilities and features previously in sidebar
-    with col_left:
-        # Capabilities section moved to left column for better space utilization
+    # Set up sidebar for capabilities and settings
+    with st.sidebar:
+        # App title and logo
+        st.title("AI Chat Studio")
+        
+        # Capabilities section in sidebar - more visible and accessible
         st.subheader("Capabilities")
         st.markdown("⌨️ Text & Code")
         st.markdown("🖼️ Images")
         st.markdown("🔊 Audio")
         
-        # Current user info
-        st.subheader("User")
-        st.write(f"Current user: {st.session_state.user}")
-        
         # Voice Command UI
         st.markdown("""
-        <div style="margin-top: 30px; border-top: 1px solid #333; padding-top: 15px;">
+        <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;">
         <p style="font-size: 0.9rem; margin-bottom: 10px;">Accessibility</p>
         </div>
         """, unsafe_allow_html=True)
@@ -121,16 +116,109 @@ def main():
             st.session_state.voice_commands_enabled = voice_enabled
             st.rerun()
         
+        # Theme selection
+        st.markdown("""
+        <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;">
+        <p style="font-weight: 500; margin-bottom: 5px;">Appearance</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        selected_theme = st.selectbox(
+            "Theme",
+            options=list(THEMES.keys()),
+            index=list(THEMES.keys()).index(st.session_state.current_theme),
+            help="Select a color theme for the app"
+        )
+        
+        # Apply theme if changed
+        if selected_theme != st.session_state.current_theme:
+            st.session_state.current_theme = selected_theme
+            st.rerun()
+        
+        # Text-to-Speech settings section
+        st.markdown("""
+        <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;">
+        <p style="font-weight: 500; margin-bottom: 5px;">Speech</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Initialize TTS settings in session state if not present
+        if "tts_settings" not in st.session_state:
+            st.session_state.tts_settings = {}
+        
+        # Add the TTS controls to the sidebar
+        tts_settings = render_tts_controls()
+        st.session_state.tts_settings = tts_settings
+        
+        # Model selection with specific model variants
+        st.markdown("""
+        <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;">
+        <p style="font-weight: 500; margin-bottom: 5px;">Model</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        model_options = [
+            "Gemini 2.0 Pro (gemini-1.5-pro)",
+            "Gemini 1.5 Flash (gemini-1.5-flash)",
+            "Anthropic (claude-3-5-sonnet-20241022)",
+            "OpenAI (gpt-4o)",
+            "Perplexity"
+        ]
+        
+        selected_model = st.selectbox(
+            "Select AI Model",
+            options=model_options,
+            index=model_options.index(st.session_state.current_model) if st.session_state.current_model in model_options else 0,
+            help="Choose the AI model to use for conversation"
+        )
+        
+        if selected_model != st.session_state.current_model:
+            st.session_state.current_model = selected_model
+            st.rerun()
+        
+        # Temperature slider for model creativity
+        st.markdown("""
+        <div style="margin-top: 10px;">
+        <p style="font-size: 0.9rem; margin-bottom: 5px;">Temperature</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        temperature = st.slider(
+            "Adjust creativity", 
+            min_value=0.0, 
+            max_value=1.0, 
+            value=st.session_state.temperature, 
+            step=0.1,
+            help="Lower values = more deterministic, higher values = more creative",
+            key="temperature_slider"
+        )
+        
+        if temperature != st.session_state.temperature:
+            st.session_state.temperature = temperature
+        
+        # User section
+        st.markdown("""
+        <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;">
+        <p style="font-weight: 500; margin-bottom: 5px;">User</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.write(f"Current user: {st.session_state.user}")
+        
         # Logout button
         if st.button("Logout", use_container_width=True, type="primary"):
             logout_user()
             st.rerun()
         
         # Chat Library section
-        st.subheader("Chat Library")
+        st.markdown("""
+        <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;">
+        <p style="font-weight: 500; margin-bottom: 5px;">Chat Library</p>
+        </div>
+        """, unsafe_allow_html=True)
         
         # Search input
-        st.text_input("Search chats by model or content", key="search_chats")
+        st.text_input("Search chats", key="search_chats", placeholder="Search by model or content")
         
         # Recent conversations display
         if "current_model" in st.session_state:
@@ -147,8 +235,11 @@ def main():
         </div>
         """, unsafe_allow_html=True)
     
-    # Center column for chat area
-    with col_center:
+    # Main content area (full width, no columns)
+    col_main = st.container()
+    
+    # Main content area for chat UI
+    with col_main:
         # Main chat area with enhanced Google AI Studio style header
         st.markdown("""
         <div style="text-align: center; padding: 20px 0;">
@@ -583,7 +674,8 @@ def main():
             # Force a rerun to show the new messages and reset UI state
             st.rerun()
     
-    with col_right:
+    # This section is now merged into the sidebar, so we no longer use it
+    if False: # Keeping the code for reference but never executing it
         # Right sidebar with enhanced Google AI Studio style settings
         with st.container():
             # Display user profile at the top of the sidebar if authenticated
