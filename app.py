@@ -263,6 +263,40 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
+        # File upload area above logout button
+        st.markdown("""
+        <div style="margin-top: 30px; margin-bottom: 20px;">
+            <div style="color: white; font-weight: 500; margin-bottom: 15px; font-size: 16px;">Upload files</div>
+            <div style="border: 1px dashed #666; border-radius: 8px; padding: 20px; text-align: center; background-color: rgba(30, 30, 30, 0.6);">
+                <div style="color: white; margin-bottom: 10px;">Drag and drop file here</div>
+                <div style="color: #999; font-size: 12px; margin-bottom: 5px;">Limit 200MB per file •</div>
+                <div style="color: #999; font-size: 12px;">JPG, JPEG, PNG</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Browse files button
+        browse_col1, browse_col2 = st.columns([3, 1])
+        with browse_col1:
+            browse_files = st.file_uploader("Browse files", type=["jpg", "jpeg", "png"], label_visibility="collapsed", key="sidebar_file_uploader")
+            if browse_files:
+                # Preview the uploaded files
+                st.image(browse_files, width=150)
+                st.session_state.uploaded_image = encode_image(browse_files)
+                
+        with browse_col2:
+            st.markdown("""
+            <div style="height: 38px;"></div>
+            """, unsafe_allow_html=True)
+        
+        # Recent files section
+        st.markdown("""
+        <div style="margin-top: 20px; margin-bottom: 20px;">
+            <div style="color: white; font-weight: 500; margin-bottom: 10px; font-size: 16px;">Recent files</div>
+            <div style="color: #999; font-size: 14px; text-align: center; padding: 15px 0;">No recent files found</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
         # Logout button at bottom
         st.markdown("<div style='margin-top: 30px;'></div>", unsafe_allow_html=True)
         if st.button("Logout", use_container_width=True, type="primary", key="logout_bottom"):
@@ -276,52 +310,20 @@ def main():
     # Create a 3-column layout with more space for the left sidebar
     left_sidebar, main_content, right_sidebar = st.columns([1.2, 5.8, 2])
     
-    # Left sidebar with file upload area
+    # Left sidebar with content
     with left_sidebar:
-        # Add drag and drop file area
+        # Display active model with badge
         st.markdown("""
-        <div style="margin-bottom: 20px;">
-            <h3 style="font-size: 1.1rem; margin-bottom: 10px; color: white;">Upload files</h3>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Custom drag and drop area styled like Google's
-        st.markdown("""
-        <style>
-        .drag-drop-area {
-            background-color: #1e1e1e;
-            border: 1px dashed #555;
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            margin-bottom: 15px;
-            transition: all 0.3s;
-        }
-        .drag-drop-area:hover {
-            border-color: #8c52ff;
-            background-color: #2a2a2a;
-        }
-        </style>
-        <div class="drag-drop-area">
-            <p style="color: white; margin-bottom: 8px;">Drag and drop file here</p>
-            <p style="color: #888; font-size: 0.8rem;">Limit 200MB per file • JPG, JPEG, PNG</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Browse files button
-        st.button("Browse files", key="browse_files_btn", use_container_width=True)
-        
-        # Recent files section
-        st.markdown("""
-        <div style="margin-top: 30px; margin-bottom: 10px;">
-            <h3 style="font-size: 1.1rem; color: white;">Recent files</h3>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Empty state for recent files
-        st.markdown("""
-        <div style="color: #888; font-size: 0.9rem; padding: 15px 0;">
-            No recent files found
+        <div style="background-color: rgba(30, 30, 30, 0.6); border-radius: 8px; padding: 12px; margin-bottom: 20px; border: 1px solid #333;">
+            <div style="display: flex; align-items: center;">
+                <div style="background-color: #4285f4; border-radius: 50%; height: 24px; width: 24px; display: flex; align-items: center; justify-content: center; margin-right: 10px;">
+                    <span style="color: white; font-size: 14px;">G</span>
+                </div>
+                <div>
+                    <div style="color: white; font-weight: 500; font-size: 14px;">Gemini 2.0 Pro</div>
+                    <div style="color: #888; font-size: 12px;">Premium model</div>
+                </div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
     
