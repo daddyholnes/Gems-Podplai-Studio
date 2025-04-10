@@ -26,6 +26,47 @@ from utils.webrtc_audio import audio_recorder_ui
 # Text-to-speech with ElevenLabs
 from utils.tts import render_tts_controls, render_play_button, text_to_speech
 
+# Add CSS for toggle buttons
+def add_toggle_button_css():
+    st.markdown("""
+    <style>
+    .toggle-button {
+        position: relative;
+        width: 40px;
+        height: 20px;
+        background-color: #333;
+        border-radius: 10px;
+        cursor: pointer;
+    }
+    
+    .toggle-button:before {
+        content: '';
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        top: 1px;
+        left: 1px;
+        background-color: #555;
+        transition: 0.2s;
+    }
+    
+    .toggle-button.active {
+        background-color: #4285f4;
+    }
+    
+    .toggle-button.active:before {
+        transform: translateX(20px);
+        background-color: white;
+    }
+    
+    /* Make buttons look like actual buttons */
+    button {
+        cursor: pointer;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 # Set page configuration
 st.set_page_config(
     page_title="AI Chat Studio",
@@ -88,6 +129,9 @@ def encode_image(uploaded_file):
 def main():
     # Initialize database
     init_db()
+    
+    # Add CSS for toggle buttons and UI elements
+    add_toggle_button_css()
     
     # Apply custom styling to match Google Gemini UI exactly
     st.markdown("""
@@ -436,70 +480,108 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
-        # Toggle switches for tools - these match the exact design
+        # Toggle switches for tools - using actual interactable components
+        # Initialize toggle states if not already set
+        for tool in ["structured_output", "code_execution", "function_calling", "grounding"]:
+            if f"tool_{tool}" not in st.session_state:
+                st.session_state[f"tool_{tool}"] = False
+                
+        # Structured output toggle
+        st.markdown("""<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <span style="color: white; font-size: 14px;">Structured output</span>
+        </div>""", unsafe_allow_html=True)
+        structured_output = st.checkbox("", value=st.session_state.tool_structured_output, key="structured_output_toggle", label_visibility="collapsed")
+        if structured_output != st.session_state.tool_structured_output:
+            st.session_state.tool_structured_output = structured_output
+            
+        # Code execution toggle
+        st.markdown("""<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <span style="color: white; font-size: 14px;">Code execution</span>
+        </div>""", unsafe_allow_html=True)
+        code_execution = st.checkbox("", value=st.session_state.tool_code_execution, key="code_execution_toggle", label_visibility="collapsed")
+        if code_execution != st.session_state.tool_code_execution:
+            st.session_state.tool_code_execution = code_execution
+            
+        # Function calling toggle
+        st.markdown("""<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <span style="color: white; font-size: 14px;">Function calling</span>
+        </div>""", unsafe_allow_html=True)
+        function_calling = st.checkbox("", value=st.session_state.tool_function_calling, key="function_calling_toggle", label_visibility="collapsed")
+        if function_calling != st.session_state.tool_function_calling:
+            st.session_state.tool_function_calling = function_calling
+            
+        # Grounding toggle
+        st.markdown("""<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <span style="color: white; font-size: 14px;">Grounding with Google Search</span>
+        </div>""", unsafe_allow_html=True)
+        grounding = st.checkbox("", value=st.session_state.tool_grounding, key="grounding_toggle", label_visibility="collapsed")
+        if grounding != st.session_state.tool_grounding:
+            st.session_state.tool_grounding = grounding
+        
+        # Actions section with real buttons
+        st.markdown("""<div style="margin-top: 30px;"></div>""", unsafe_allow_html=True)
+        
+        # My Drive button
         st.markdown("""
-        <div style="margin-bottom: 15px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <span style="color: white; font-size: 14px;">Structured output</span>
-                <div class="toggle-button"></div>
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <span style="color: white; font-size: 14px;">Code execution</span>
-                <div class="toggle-button"></div>
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <span style="color: white; font-size: 14px;">Function calling</span>
-                <div class="toggle-button"></div>
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <span style="color: white; font-size: 14px;">Grounding with Google Search</span>
-                <div class="toggle-button"></div>
-            </div>
+        <div style="margin-bottom: 10px; display: flex;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="white" viewBox="0 0 24 24" style="margin-right: 8px; margin-top: 2px;">
+                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+            </svg>
+            <span style="color: white;">My Drive</span>
         </div>
         """, unsafe_allow_html=True)
         
-        # Additional actions section
-        st.markdown("""
-        <div style="margin-top: 30px;">
-            <button style="width: 100%; background-color: transparent; border: 1px solid #555; border-radius: 4px; color: white; padding: 8px 0; font-size: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; cursor: pointer;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="white" viewBox="0 0 24 24" style="margin-right: 8px;">
-                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-                </svg>
-                My Drive
-            </button>
-            
-            <button style="width: 100%; background-color: transparent; border: 1px solid #555; border-radius: 4px; color: white; padding: 8px 0; font-size: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; cursor: pointer;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="white" viewBox="0 0 24 24" style="margin-right: 8px;">
-                    <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
-                </svg>
-                Upload File
-            </button>
-            
-            <button style="width: 100%; background-color: transparent; border: 1px solid #555; border-radius: 4px; color: white; padding: 8px 0; font-size: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; cursor: pointer;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="white" viewBox="0 0 24 24" style="margin-right: 8px;">
-                    <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
-                </svg>
-                Record Audio
-            </button>
-            
-            <button style="width: 100%; background-color: transparent; border: 1px solid #555; border-radius: 4px; color: white; padding: 8px 0; font-size: 14px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="white" viewBox="0 0 24 24" style="margin-right: 8px;">
-                    <path d="M9.4 10.5l4.77-8.26C13.47 2.09 12.75 2 12 2c-2.4 0-4.6.85-6.32 2.25l3.66 6.35.06-.1zM21.54 9c-.92-2.92-3.15-5.26-6-6.34L11.88 9h9.66zm.26 1h-7.49l.29.5 4.76 8.25C21 16.97 22 14.61 22 12c0-.69-.07-1.35-.2-2zM8.54 12l-3.9-6.75C3.01 7.03 2 9.39 2 12c0 .69.07 1.35.2 2h7.49l-1.15-2zm-6.08 3c.92 2.92 3.15 5.26 6 6.34L12.12 15H2.46zm11.27 0l-3.9 6.76c.7.15 1.42.24 2.17.24 2.4 0 4.6-.85 6.32-2.25l-3.66-6.35-.93 1.6z"/>
-                </svg>
-                Camera
-            </button>
-        </div>
+        if st.button("Open Drive", key="open_drive_btn", use_container_width=True):
+            st.info("Google Drive integration would open here")
         
-        <div style="margin-top: 20px; text-align: right;">
-            <button style="background-color: transparent; border: none; color: #888; font-size: 12px; cursor: pointer;">
-                Safety settings
-            </button>
+        # Upload File button
+        st.markdown("""
+        <div style="margin-bottom: 10px; margin-top: 15px; display: flex;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="white" viewBox="0 0 24 24" style="margin-right: 8px; margin-top: 2px;">
+                <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
+            </svg>
+            <span style="color: white;">Upload File</span>
         </div>
-        """
-        , unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+        
+        if st.button("Select File", key="upload_file_btn", use_container_width=True):
+            # Show the file upload tab
+            st.info("Please use the File Upload tab in the section below")
+            
+        # Record Audio button
+        st.markdown("""
+        <div style="margin-bottom: 10px; margin-top: 15px; display: flex;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="white" viewBox="0 0 24 24" style="margin-right: 8px; margin-top: 2px;">
+                <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
+            </svg>
+            <span style="color: white;">Record Audio</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button("Start Recording", key="record_audio_btn", use_container_width=True):
+            # Show the audio recording tab
+            st.info("Please use the Audio Recording tab in the section below")
+            
+        # Camera button
+        st.markdown("""
+        <div style="margin-bottom: 10px; margin-top: 15px; display: flex;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="white" viewBox="0 0 24 24" style="margin-right: 8px; margin-top: 2px;">
+                <path d="M9.4 10.5l4.77-8.26C13.47 2.09 12.75 2 12 2c-2.4 0-4.6.85-6.32 2.25l3.66 6.35.06-.1zM21.54 9c-.92-2.92-3.15-5.26-6-6.34L11.88 9h9.66zm.26 1h-7.49l.29.5 4.76 8.25C21 16.97 22 14.61 22 12c0-.69-.07-1.35-.2-2zM8.54 12l-3.9-6.75C3.01 7.03 2 9.39 2 12c0 .69.07 1.35.2 2h7.49l-1.15-2zm-6.08 3c.92 2.92 3.15 5.26 6 6.34L12.12 15H2.46zm11.27 0l-3.9 6.76c.7.15 1.42.24 2.17.24 2.4 0 4.6-.85 6.32-2.25l-3.66-6.35-.93 1.6z"/>
+            </svg>
+            <span style="color: white;">Camera</span>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button("Open Camera", key="open_camera_btn", use_container_width=True):
+            # Show the image upload tab
+            st.info("Please use the Image Upload tab in the section below")
+        
+        # Safety settings link
+        st.markdown("""
+        <div style="margin-top: 20px; text-align: right;">
+            <a href="#" style="color: #888; font-size: 12px; text-decoration: none;">Safety settings</a>
+        </div>
+        """, unsafe_allow_html=True)
         
         # Hidden input tabs for different input types
         input_tabs = st.tabs(["Image Upload", "Audio Recording", "File Upload"])
