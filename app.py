@@ -743,53 +743,81 @@ def main():
         if temperature != st.session_state.temperature:
             st.session_state.temperature = temperature
         
-        # 4. Tools section
+        # 4. Tools section in a more compact format
         st.markdown("""
-        <div style="display: flex; align-items: center; margin-bottom: 15px; margin-top: 30px;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="#888" viewBox="0 0 24 24">
-                <path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/>
-            </svg>
-            <span style="margin-left: 10px; color: white; font-weight: 500;">Tools</span>
-        </div>
+        <div class="compact-sidebar-section">
+            <div class="compact-sidebar-title">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#888" viewBox="0 0 24 24">
+                    <path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/>
+                </svg>
+                <span style="margin-left: 8px; color: white; font-weight: 500; font-size: 14px;">Tools</span>
+            </div>
         """, unsafe_allow_html=True)
         
-        # Toggle switches for tools - using actual interactable components
+        # Toggle switches for tools - using actual interactable components with compact styling
         # Initialize toggle states if not already set
         for tool in ["structured_output", "code_execution", "function_calling", "grounding"]:
             if f"tool_{tool}" not in st.session_state:
                 st.session_state[f"tool_{tool}"] = False
-                
-        # Structured output toggle
-        st.markdown("""<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <span style="color: white; font-size: 14px;">Structured output</span>
-        </div>""", unsafe_allow_html=True)
-        structured_output = st.checkbox("", value=st.session_state.tool_structured_output, key="structured_output_toggle", label_visibility="collapsed")
-        if structured_output != st.session_state.tool_structured_output:
-            st.session_state.tool_structured_output = structured_output
+        
+        # Create compact tools layout with columns
+        st.markdown("""
+        <style>
+        .tool-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+        .tool-toggle span {
+            color: white;
+            font-size: 13px;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        # Create a 2-column layout for toggles to save vertical space
+        col1, col2 = st.columns(2)
+        
+        # Left column toggles
+        with col1:
+            # Structured output toggle
+            st.markdown("""<div class="tool-toggle">
+                <span>Structured output</span>
+            </div>""", unsafe_allow_html=True)
+            structured_output = st.checkbox("", value=st.session_state.tool_structured_output, key="structured_output_toggle", label_visibility="collapsed")
+            if structured_output != st.session_state.tool_structured_output:
+                st.session_state.tool_structured_output = structured_output
             
-        # Code execution toggle
-        st.markdown("""<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <span style="color: white; font-size: 14px;">Code execution</span>
-        </div>""", unsafe_allow_html=True)
-        code_execution = st.checkbox("", value=st.session_state.tool_code_execution, key="code_execution_toggle", label_visibility="collapsed")
-        if code_execution != st.session_state.tool_code_execution:
-            st.session_state.tool_code_execution = code_execution
+            # Function calling toggle
+            st.markdown("""<div class="tool-toggle">
+                <span>Function calling</span>
+            </div>""", unsafe_allow_html=True)
+            function_calling = st.checkbox("", value=st.session_state.tool_function_calling, key="function_calling_toggle", label_visibility="collapsed")
+            if function_calling != st.session_state.tool_function_calling:
+                st.session_state.tool_function_calling = function_calling
+        
+        # Right column toggles
+        with col2:
+            # Code execution toggle
+            st.markdown("""<div class="tool-toggle">
+                <span>Code execution</span>
+            </div>""", unsafe_allow_html=True)
+            code_execution = st.checkbox("", value=st.session_state.tool_code_execution, key="code_execution_toggle", label_visibility="collapsed")
+            if code_execution != st.session_state.tool_code_execution:
+                st.session_state.tool_code_execution = code_execution
             
-        # Function calling toggle
-        st.markdown("""<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <span style="color: white; font-size: 14px;">Function calling</span>
-        </div>""", unsafe_allow_html=True)
-        function_calling = st.checkbox("", value=st.session_state.tool_function_calling, key="function_calling_toggle", label_visibility="collapsed")
-        if function_calling != st.session_state.tool_function_calling:
-            st.session_state.tool_function_calling = function_calling
-            
-        # Grounding toggle
-        st.markdown("""<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <span style="color: white; font-size: 14px;">Grounding with Google Search</span>
-        </div>""", unsafe_allow_html=True)
-        grounding = st.checkbox("", value=st.session_state.tool_grounding, key="grounding_toggle", label_visibility="collapsed")
-        if grounding != st.session_state.tool_grounding:
-            st.session_state.tool_grounding = grounding
+            # Grounding toggle
+            st.markdown("""<div class="tool-toggle">
+                <span>Grounding</span>
+            </div>""", unsafe_allow_html=True)
+            grounding = st.checkbox("", value=st.session_state.tool_grounding, key="grounding_toggle", label_visibility="collapsed")
+            if grounding != st.session_state.tool_grounding:
+                st.session_state.tool_grounding = grounding
+        
+        # Close the section
+        st.markdown("""</div>""", unsafe_allow_html=True)
         
         # Actions section with real buttons
         st.markdown("""<div style="margin-top: 30px;"></div>""", unsafe_allow_html=True)

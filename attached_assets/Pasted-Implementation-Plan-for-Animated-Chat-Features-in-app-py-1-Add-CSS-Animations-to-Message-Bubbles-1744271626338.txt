@@ -1,0 +1,173 @@
+Implementation Plan for Animated Chat Features in app.py
+
+1. Add CSS Animations to Message Bubbles
+
+python
+# Add to the main() function's CSS
+st.markdown("""
+<style>
+@keyframes popIn {
+    0% { transform: scale(0.5); opacity: 0; }
+    80% { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes floatUp {
+    0% { transform: translateY(20px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+}
+
+.message-pop {
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.message-float {
+    animation: floatUp 0.4s ease-out;
+}
+
+.fading-message {
+    transition: all 0.5s ease;
+    opacity: 0.4;
+    filter: blur(1px);
+}
+
+@keyframes typingDots {
+    0%, 20% { content: '.'; }
+    40% { content: '..'; }
+    60% { content: '...'; }
+    80%, 100% { content: ''; }
+}
+
+.typing-indicator::after {
+    content: '';
+    animation: typingDots 1.5s infinite;
+}
+</style>
+""", unsafe_allow_html=True)
+2. Modified Message Rendering with Animations
+
+python
+# In the chat_container section
+with chat_container:
+    for i, message in enumerate(st.session_state.messages):
+        animation_class = "message-pop" if i == len(st.session_state.messages)-1 else "message-float"
+        
+        if message["role"] == "user":
+            st.markdown(f"""
+            <div class="{animation_class}" style="display: flex; align-items: start; margin-bottom: 10px;">
+                <div style="background-color: #f50057; color: white; border-radius: 50%; height: 32px; width: 32px; display: flex; align-items: center; justify-content: center; margin-right: 10px; flex-shrink: 0;">
+                    <span>👤</span>
+                </div>
+                <div style="background-color: #1e1e1e; border-radius: 10px; padding: 10px; max-width: 90%;">
+                    <p style="margin: 0; color: white; white-space: pre-wrap;">{html.escape(message["content"]).replace(chr(10), '<br>')}</p>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+            <div class="{animation_class}" style="display: flex; align-items: start; margin-bottom: 10px;">
+                <div style="background-color: #8c52ff; color: white; border-radius: 50%; height: 32px; width: 32px; display: flex; align-items: center; justify-content: center; margin-right: 10px; flex-shrink: 0;">
+                    <span>🤖</span>
+                </div>
+                <div style="background-color: #272727; border-radius: 10px; padding: 10px; max-width: 90%;">
+                    <p style="margin: 0; color: white; white-space: pre-wrap;">{html.escape(message["content"]).replace(chr(10), '<br>')}</p>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+3. Live Typing Indicator for AI Responses
+
+python
+# Modify the response generation block
+if st.session_state.get("show_typing", False):
+    placeholder.markdown("""
+    <div style="display: flex; align-items: center; margin-bottom: 10px;">
+        <div style="background-color: #8c52ff; color: white; border-radius: 50%; height: 32px; width: 32px; display: flex; align-items: center; justify-content: center; margin-right: 10px; flex-shrink: 0;">
+            <span>🤖</span>
+        </div>
+        <div style="background-color: #272727; border-radius: 10px; padding: 10px; max-width: 90%;">
+            <p style="margin: 0; color: white;">Thinking<span class="typing-indicator"></span></p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+# In the response generation logic
+with st.spinner(f"Thinking... using {st.session_state.current_model}"):
+    st.session_state.show_typing = True
+    try:
+        # Existing response generation code
+    finally:
+        st.session_state.show_typing = False
+4. Floating Message History with Gradient Fade
+
+python
+# Add to chat container CSS
+st.markdown("""
+<style>
+.chat-container {
+    position: relative;
+    overflow-y: auto;
+    max-height: 600px;
+}
+
+.chat-container::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 30px;
+    background: linear-gradient(to bottom, 
+        rgba(40, 40, 40, 0) 0%,
+        rgba(40, 40, 40, 0.8) 100%
+    );
+    pointer-events: none;
+}
+</style>
+""", unsafe_allow_html=True)
+5. Dynamic Message Aging System
+
+python
+# Add to session state initialization
+if "message_ages" not in st.session_state:
+    st.session_state.message_ages = {}
+
+# After adding a new message
+st.session_state.message_ages[str(message_id)] = datetime.now()
+
+# In message rendering loop
+for i, message in enumerate(st.session_state.messages):
+    message_id = hash(message["content"])
+    age = (datetime.now() - st.session_state.message_ages.get(str(message_id), datetime.now())).seconds
+    fade_style = f"opacity: {max(0.4, 1 - age/300)};" if age > 60 else ""
+    
+    st.markdown(f"""
+    <div style="{fade_style}">
+        <!-- Existing message HTML -->
+    </div>
+    """, unsafe_allow_html=True)
+Key Features Implemented:
+
+Pop-in Animation: New messages scale up with smooth easing
+
+Float-up Transition: Older messages gently rise into position
+
+Typing Indicator: Animated ellipsis during AI processing
+
+Gradient Fade: Subtle overlay at bottom of chat history
+
+Dynamic Aging: Messages gradually fade over 5 minutes
+
+Motion Choreography: Coordinated animations prevent visual clutter
+
+Accessibility Considerations:
+
+Reduced motion support through CSS media queries
+
+Configurable animation durations in theme settings
+
+Progressive enhancement approach (works without animations)
+
+Clear visual hierarchy maintained during transitions
+
+This implementation balances engagement with usability, using Streamlit's existing capabilities while pushing CSS animation boundaries. The animations provide spatial context without overwhelming users, particularly important for neurodivergent users as specified in the query.
+
