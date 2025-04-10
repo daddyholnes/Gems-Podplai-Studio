@@ -94,68 +94,8 @@ def main():
         # App title and logo
         st.title("AI Chat Studio")
         
-        # Capabilities section in sidebar - more visible and accessible
-        st.subheader("Capabilities")
-        st.markdown("⌨️ Text & Code")
-        st.markdown("🖼️ Images")
-        st.markdown("🔊 Audio")
-        
-        # Voice Command UI
-        st.markdown("""
-        <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;">
-        <p style="font-size: 0.9rem; margin-bottom: 10px;">Accessibility</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Voice commands toggle - simple version without calling the function
-        voice_toggle_label = "Voice Commands"
-        voice_enabled = st.toggle(voice_toggle_label, value=st.session_state.voice_commands_enabled)
-        
-        # Update session state if toggle changed
-        if voice_enabled != st.session_state.voice_commands_enabled:
-            st.session_state.voice_commands_enabled = voice_enabled
-            st.rerun()
-        
-        # Theme selection
-        st.markdown("""
-        <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;">
-        <p style="font-weight: 500; margin-bottom: 5px;">Appearance</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        selected_theme = st.selectbox(
-            "Theme",
-            options=list(THEMES.keys()),
-            index=list(THEMES.keys()).index(st.session_state.current_theme),
-            help="Select a color theme for the app"
-        )
-        
-        # Apply theme if changed
-        if selected_theme != st.session_state.current_theme:
-            st.session_state.current_theme = selected_theme
-            st.rerun()
-        
-        # Text-to-Speech settings section
-        st.markdown("""
-        <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;">
-        <p style="font-weight: 500; margin-bottom: 5px;">Speech</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Initialize TTS settings in session state if not present
-        if "tts_settings" not in st.session_state:
-            st.session_state.tts_settings = {}
-        
-        # Add the TTS controls to the sidebar
-        tts_settings = render_tts_controls()
-        st.session_state.tts_settings = tts_settings
-        
-        # Model selection with specific model variants
-        st.markdown("""
-        <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;">
-        <p style="font-weight: 500; margin-bottom: 5px;">Model</p>
-        </div>
-        """, unsafe_allow_html=True)
+        # Model selection at the very top
+        st.subheader("Model")
         
         model_options = [
             "Gemini 2.0 Pro (gemini-1.5-pro)",
@@ -176,12 +116,8 @@ def main():
             st.session_state.current_model = selected_model
             st.rerun()
         
-        # Temperature slider for model creativity
-        st.markdown("""
-        <div style="margin-top: 10px;">
-        <p style="font-size: 0.9rem; margin-bottom: 5px;">Temperature</p>
-        </div>
-        """, unsafe_allow_html=True)
+        # Temperature slider right after model selection
+        st.subheader("Temperature")
         
         temperature = st.slider(
             "Adjust creativity", 
@@ -195,27 +131,12 @@ def main():
         
         if temperature != st.session_state.temperature:
             st.session_state.temperature = temperature
-        
-        # User section
-        st.markdown("""
-        <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;">
-        <p style="font-weight: 500; margin-bottom: 5px;">User</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.write(f"Current user: {st.session_state.user}")
-        
-        # Logout button
-        if st.button("Logout", use_container_width=True, type="primary"):
-            logout_user()
-            st.rerun()
-        
+            
         # Chat Library section
         st.markdown("""
-        <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;">
-        <p style="font-weight: 500; margin-bottom: 5px;">Chat Library</p>
-        </div>
+        <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;"></div>
         """, unsafe_allow_html=True)
+        st.subheader("Chat Library")
         
         # Search input
         st.text_input("Search chats", key="search_chats", placeholder="Search by model or content")
@@ -227,6 +148,75 @@ def main():
                 conversations = load_conversations(username)
                 if not conversations:
                     st.markdown("No previous conversations found")
+        
+        # Capabilities section in sidebar - more visible and accessible
+        st.markdown("""
+        <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;"></div>
+        """, unsafe_allow_html=True)
+        st.subheader("Capabilities")
+        st.markdown("⌨️ Text & Code")
+        st.markdown("🖼️ Images")
+        st.markdown("🔊 Audio")
+        
+        # Theme selection
+        st.markdown("""
+        <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;"></div>
+        """, unsafe_allow_html=True)
+        st.subheader("Appearance")
+        
+        selected_theme = st.selectbox(
+            "Theme",
+            options=list(THEMES.keys()),
+            index=list(THEMES.keys()).index(st.session_state.current_theme),
+            help="Select a color theme for the app"
+        )
+        
+        # Apply theme if changed
+        if selected_theme != st.session_state.current_theme:
+            st.session_state.current_theme = selected_theme
+            st.rerun()
+        
+        # Text-to-Speech settings section
+        st.markdown("""
+        <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;"></div>
+        """, unsafe_allow_html=True)
+        st.subheader("Speech")
+        
+        # Initialize TTS settings in session state if not present
+        if "tts_settings" not in st.session_state:
+            st.session_state.tts_settings = {}
+        
+        # Add the TTS controls to the sidebar
+        tts_settings = render_tts_controls()
+        st.session_state.tts_settings = tts_settings
+        
+        # Accessibility controls (voice commands)
+        st.markdown("""
+        <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;"></div>
+        """, unsafe_allow_html=True)
+        st.subheader("Accessibility")
+        
+        # Voice commands toggle - simple version without calling the function
+        voice_toggle_label = "Voice Commands"
+        voice_enabled = st.toggle(voice_toggle_label, value=st.session_state.voice_commands_enabled)
+        
+        # Update session state if toggle changed
+        if voice_enabled != st.session_state.voice_commands_enabled:
+            st.session_state.voice_commands_enabled = voice_enabled
+            st.rerun()
+        
+        # User section near the bottom
+        st.markdown("""
+        <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;"></div>
+        """, unsafe_allow_html=True)
+        st.subheader("User")
+        
+        st.write(f"Current user: {st.session_state.user}")
+        
+        # Logout button at the very bottom
+        if st.button("Logout", use_container_width=True, type="primary"):
+            logout_user()
+            st.rerun()
                     
         # Footer
         st.markdown("""
