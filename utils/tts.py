@@ -7,24 +7,40 @@ import tempfile
 import hashlib
 import streamlit as st
 from typing import Optional, Dict, List, Tuple, Any
-from elevenlabs import generate, voices, Voice, set_api_key
-from elevenlabs.api import Models
-
-# Initialize API key
-ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY")
-if ELEVENLABS_API_KEY:
-    set_api_key(ELEVENLABS_API_KEY)
 
 # Cache directory for storing generated audio
 CACHE_DIR = "data/tts_cache"
 os.makedirs(CACHE_DIR, exist_ok=True)
 
+# ElevenLabs API key
+ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY")
+
 # Default voice settings
 DEFAULT_VOICE = "Rachel"
+DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"
 DEFAULT_MODEL = "eleven_turbo_v2"
 STABILITY = 0.5
 CLARITY = 0.5
-STYLE = 0.0
+
+# Default voices to use when API is not available
+DEFAULT_VOICES = [
+    ("21m00Tcm4TlvDq8ikWAM", "Rachel"),
+    ("AZnzlk1XvdvUeBnXmlld", "Domi"),
+    ("EXAVITQu4vr4xnSDxMaL", "Bella"),
+    ("ErXwobaYiN019PkySvjV", "Antoni"),
+    ("MF3mGyEYCl7XYWbV9V6O", "Elli"),
+    ("TxGEqnHWrfWFTfGW9XjX", "Josh"),
+    ("VR6AewLTigWG4xSOukaG", "Arnold"),
+    ("pNInz6obpgDQGcFmaJgB", "Adam"),
+    ("yoZ06aMxZJJ28mfd3POQ", "Sam")
+]
+
+# Default models to use when API is not available
+DEFAULT_MODELS = [
+    ("eleven_turbo_v2", "Eleven Turbo v2"),
+    ("eleven_multilingual_v2", "Eleven Multilingual v2"),
+    ("eleven_monolingual_v1", "Eleven Monolingual v1")
+]
 
 
 def get_available_voices() -> List[Tuple[str, str]]:
@@ -34,23 +50,17 @@ def get_available_voices() -> List[Tuple[str, str]]:
     Returns:
         List of (voice_id, voice_name) tuples
     """
+    if not ELEVENLABS_API_KEY:
+        return DEFAULT_VOICES
+        
     try:
-        voice_list = voices()
-        return [(voice.voice_id, voice.name) for voice in voice_list]
+        import elevenlabs
+        client = elevenlabs.Client(api_key=ELEVENLABS_API_KEY)
+        voices = client.voices.get_all()
+        return [(voice.voice_id, voice.name) for voice in voices]
     except Exception as e:
         print(f"Error fetching voices: {e}")
-        # Return a few default voices if API call fails
-        return [
-            ("21m00Tcm4TlvDq8ikWAM", "Rachel"),
-            ("AZnzlk1XvdvUeBnXmlld", "Domi"),
-            ("EXAVITQu4vr4xnSDxMaL", "Bella"),
-            ("ErXwobaYiN019PkySvjV", "Antoni"),
-            ("MF3mGyEYCl7XYWbV9V6O", "Elli"),
-            ("TxGEqnHWrfWFTfGW9XjX", "Josh"),
-            ("VR6AewLTigWG4xSOukaG", "Arnold"),
-            ("pNInz6obpgDQGcFmaJgB", "Adam"),
-            ("yoZ06aMxZJJ28mfd3POQ", "Sam"),
-        ]
+        return DEFAULT_VOICES
 
 
 def get_available_models() -> List[Tuple[str, str]]:
@@ -60,17 +70,17 @@ def get_available_models() -> List[Tuple[str, str]]:
     Returns:
         List of (model_id, model_name) tuples
     """
+    if not ELEVENLABS_API_KEY:
+        return DEFAULT_MODELS
+        
     try:
-        models = Models.from_api()
+        import elevenlabs
+        client = elevenlabs.Client(api_key=ELEVENLABS_API_KEY)
+        models = client.models.get_all()
         return [(model.model_id, model.name) for model in models]
     except Exception as e:
         print(f"Error fetching models: {e}")
-        # Return a few default models if API call fails
-        return [
-            ("eleven_turbo_v2", "Eleven Turbo v2"),
-            ("eleven_multilingual_v2", "Eleven Multilingual v2"),
-            ("eleven_monolingual_v1", "Eleven Monolingual v1"),
-        ]
+        return DEFAULT_MODELS
 
 
 def generate_audio_hash(text: str, voice_id: str, model_id: str) -> str:
@@ -85,7 +95,7 @@ def generate_audio_hash(text: str, voice_id: str, model_id: str) -> str:
     Returns:
         MD5 hash string
     """
-    params_str = f"{text}|{voice_id}|{model_id}|{STABILITY}|{CLARITY}|{STYLE}"
+    params_str = f"{text}|{voice_id}|{model_id}|{STABILITY}|{CLARITY}"
     return hashlib.md5(params_str.encode()).hexdigest()
 
 
@@ -108,7 +118,7 @@ def text_to_speech(
         Tuple of (file_path, base64_audio) if successful, or (None, None) if failed
     """
     # Use default values if not provided
-    voice_id = voice_id or DEFAULT_VOICE
+    voice_id = voice_id or DEFAULT_VOICE_ID
     model_id = model_id or DEFAULT_MODEL
     
     # Check if API key is set
@@ -133,35 +143,45 @@ def text_to_speech(
     
     # Generate audio
     try:
-        audio = generate(
+        # Import here to avoid startup errors
+        import elevenlabs
+        
+        # Initialize the client with API key
+        client = elevenlabs.Client(api_key=ELEVENLABS_API_KEY)
+        
+        # Create generation parameters
+        voice_settings = elevenlabs.VoiceSettings(
+            stability=STABILITY,
+            similarity_boost=CLARITY
+        )
+        
+        # Generate audio
+        audio = client.generate(
             text=text,
             voice=voice_id,
             model=model_id,
-            stability=STABILITY,
-            clarity=CLARITY,
-            style=STYLE
+            voice_settings=voice_settings
         )
         
-        # Save to cache if enabled
-        if use_cache:
-            with open(cache_path, 'wb') as f:
-                f.write(audio)
-            with open(cache_path, 'rb') as f:
-                audio_bytes = f.read()
-        else:
-            # Create a temporary file for the audio
-            temp_file = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
-            temp_path = temp_file.name
-            temp_file.close()
-            
-            with open(temp_path, 'wb') as f:
-                f.write(audio)
-            with open(temp_path, 'rb') as f:
-                audio_bytes = f.read()
-            
-            return temp_path, base64.b64encode(audio_bytes).decode('utf-8')
+        # Get the audio bytes
+        audio_bytes = audio.content
         
-        return cache_path, base64.b64encode(audio_bytes).decode('utf-8')
+        # Determine output path (cache or temporary)
+        if use_cache:
+            output_path = cache_path
+        else:
+            temp_file = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
+            output_path = temp_file.name
+            temp_file.close()
+        
+        # Save the audio file
+        with open(output_path, 'wb') as f:
+            f.write(audio_bytes)
+        
+        # Encode to base64
+        base64_audio = base64.b64encode(audio_bytes).decode('utf-8')
+        
+        return output_path, base64_audio
         
     except Exception as e:
         st.error(f"Error generating speech: {e}")

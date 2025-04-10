@@ -168,7 +168,7 @@ def main():
                     </div>
                     """, unsafe_allow_html=True)
                     
-                    # Add simplified reaction buttons for AI messages 
+                    # Add text-to-speech and reaction buttons for AI messages
                     if i > 0 and message["role"] == "assistant":
                         # Create a unique key for each message's reaction section
                         message_key = f"reaction_{i}"
@@ -192,13 +192,29 @@ def main():
                         </div>
                         """, unsafe_allow_html=True)
                         
-                        # Only show react button if there are no counts yet
-                        empty_reactions = all(count == 0 for count in st.session_state[message_key].values())
+                        # Add buttons row: Play (TTS), Copy, and React
+                        tts_col, react_col, copy_col = st.columns([1, 1, 2])
                         
-                        # Add react button
-                        cols = st.columns([1, 3])
-                        if cols[0].button("👍 React", key=f"react_btn_{i}", use_container_width=True):
+                        # Text-to-speech button
+                        with tts_col:
+                            # Use the render_play_button from utils/tts.py
+                            render_play_button(message["content"], key=f"tts_{i}")
+                        
+                        # React button
+                        if react_col.button("👍 React", key=f"react_btn_{i}", use_container_width=True):
                             st.session_state[message_key]["👍"] += 1
+                            
+                        # Copy text button
+                        if copy_col.button("📋 Copy Text", key=f"copy_btn_{i}", use_container_width=True):
+                            # Use JavaScript to copy to clipboard via streamlit component
+                            st.markdown(f"""
+                            <script>
+                                var textToCopy = {json.dumps(message["content"])};
+                                navigator.clipboard.writeText(textToCopy);
+                            </script>
+                            """, unsafe_allow_html=True)
+                            st.toast("Text copied to clipboard!")
+                            
         
         # Close the chat container div
         st.markdown('</div>', unsafe_allow_html=True)
@@ -216,78 +232,97 @@ def main():
                 # Preview the image
                 st.image(uploaded_file, caption="Image ready for analysis", width=300)
         
-        # Audio recording tab
+        # Audio recording tab - Enhanced with WebRTC
         with input_tabs[1]:
             if "audio_data" not in st.session_state:
                 st.session_state.audio_data = None
                 st.session_state.audio_path = None
                 st.session_state.audio_recording_unavailable = False
             
-            # Check if audio recording was previously determined to be unavailable
-            if not st.session_state.audio_recording_unavailable:
-                # Place buttons side by side without nested columns
-                st.write("Choose recording duration:")
-                b1, b2 = st.columns(2) # This is not nested - it's at the root level of the tab
+            st.markdown("### Enhanced Audio Recording")
+            st.markdown("Record audio with adjustable duration using your microphone")
+            
+            # Try using WebRTC recorder first
+            try:
+                # Use the enhanced WebRTC audio recorder
+                base64_audio = audio_recorder_ui(
+                    key="webrtc_recorder",
+                    title="Audio Recording",
+                    description="Click start button to begin recording. Click stop when you're done.",
+                    durations=[15, 30, 60, 120],
+                    show_description=True,
+                    show_playback=True
+                )
                 
-                # Record 5-second audio
-                if b1.button("Record Audio (5 seconds)", use_container_width=True):
-                    try:
-                        from utils.audio import record_audio, encode_audio, cleanup_audio_file
-                        
-                        # Record audio for 5 seconds
-                        audio_bytes, temp_file_path = record_audio(duration=5)
-                        
-                        # Save to session state
-                        st.session_state.audio_data = encode_audio(audio_bytes)
-                        st.session_state.audio_path = temp_file_path
-                        
-                        # Show success message
-                        st.success("Audio recorded successfully!")
-                        
-                        # Add an audio player to preview the recording
-                        st.audio(temp_file_path)
-                    except Exception as e:
-                        error_message = str(e)
-                        if "microphone is not accessible" in error_message or "Invalid input device" in error_message:
-                            st.error("Microphone not available in this environment.")
-                            st.info("You can upload an audio file instead or use text input.")
-                            st.session_state.audio_recording_unavailable = True
-                        else:
-                            st.error(f"Failed to record audio: {error_message}")
+                # If audio was recorded, store it in session state
+                if base64_audio:
+                    st.session_state.audio_data = base64_audio
+                    # Path is already stored by the recorder in session state
+                    st.session_state.audio_path = st.session_state.get("webrtc_recorder_file_path")
+                    
+                    # Show success message
+                    st.success("Audio recorded successfully!")
+                    st.info("You can now send a message to analyze this audio.")
                 
-                # Record 10-second audio
-                if b2.button("Record Audio (10 seconds)", use_container_width=True):
-                    try:
-                        from utils.audio import record_audio, encode_audio, cleanup_audio_file
-                        
-                        # Record audio for 10 seconds
-                        audio_bytes, temp_file_path = record_audio(duration=10)
-                        
-                        # Save to session state
-                        st.session_state.audio_data = encode_audio(audio_bytes)
-                        st.session_state.audio_path = temp_file_path
-                        
-                        # Show success message
-                        st.success("Audio recorded successfully!")
-                        
-                        # Add an audio player to preview the recording
-                        st.audio(temp_file_path)
-                    except Exception as e:
-                        error_message = str(e)
-                        if "microphone is not accessible" in error_message or "Invalid input device" in error_message:
-                            st.error("Microphone not available in this environment.")
-                            st.info("You can upload an audio file instead or use text input.")
-                            st.session_state.audio_recording_unavailable = True
-                        else:
-                            st.error(f"Failed to record audio: {error_message}")
-            else:
-                # Show alternative options when recording is unavailable
-                st.warning("Audio recording is not available in this environment.")
-                st.info("You can upload a pre-recorded audio file or use text input instead.")
+            except Exception as e:
+                # Fallback to legacy recording if WebRTC fails
+                st.error(f"Enhanced audio recording unavailable: {str(e)}")
+                st.info("Falling back to basic audio recording...")
                 st.session_state.audio_recording_unavailable = True
+                
+                # Display legacy recording interface
+                if not st.session_state.audio_recording_unavailable:
+                    st.write("Choose recording duration:")
+                    b1, b2 = st.columns(2)
+                    
+                    # Record 5-second audio
+                    if b1.button("Record Audio (5 seconds)", use_container_width=True):
+                        try:
+                            from utils.audio import record_audio, encode_audio, cleanup_audio_file
+                            audio_bytes, temp_file_path = record_audio(duration=5)
+                            st.session_state.audio_data = encode_audio(audio_bytes)
+                            st.session_state.audio_path = temp_file_path
+                            st.success("Audio recorded successfully!")
+                            st.audio(temp_file_path)
+                        except Exception as e:
+                            error_message = str(e)
+                            if "microphone is not accessible" in error_message or "Invalid input device" in error_message:
+                                st.error("Microphone not available in this environment.")
+                                st.info("You can upload an audio file instead or use text input.")
+                                st.session_state.audio_recording_unavailable = True
+                            else:
+                                st.error(f"Failed to record audio: {error_message}")
+                    
+                    # Record 10-second audio
+                    if b2.button("Record Audio (10 seconds)", use_container_width=True):
+                        try:
+                            from utils.audio import record_audio, encode_audio, cleanup_audio_file
+                            audio_bytes, temp_file_path = record_audio(duration=10)
+                            st.session_state.audio_data = encode_audio(audio_bytes)
+                            st.session_state.audio_path = temp_file_path
+                            st.success("Audio recorded successfully!")
+                            st.audio(temp_file_path)
+                        except Exception as e:
+                            error_message = str(e)
+                            if "microphone is not accessible" in error_message or "Invalid input device" in error_message:
+                                st.error("Microphone not available in this environment.")
+                                st.info("You can upload an audio file instead or use text input.")
+                                st.session_state.audio_recording_unavailable = True
+                            else:
+                                st.error(f"Failed to record audio: {error_message}")
+                else:
+                    # Show alternative options when recording is unavailable
+                    st.warning("Audio recording is not available in this environment.")
+                    st.info("You can upload a pre-recorded audio file or use text input instead.")
+            
+            # Separator
+            st.markdown("---")
             
             # Upload audio file as alternative
-            uploaded_audio = st.file_uploader("Or upload audio file", type=["wav", "mp3", "ogg"], key="audio_upload")
+            st.markdown("### Upload Audio File")
+            st.markdown("Alternatively, upload a pre-recorded audio file")
+            
+            uploaded_audio = st.file_uploader("Upload audio file", type=["wav", "mp3", "ogg"], key="audio_upload")
             if uploaded_audio:
                 try:
                     # Read the file and encode it
