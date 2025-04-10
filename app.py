@@ -630,6 +630,21 @@ def main():
             if selected_theme != st.session_state.current_theme:
                 st.session_state.current_theme = selected_theme
                 st.rerun()
+            
+            # Text-to-Speech settings section
+            st.markdown("""
+            <div style="margin-top: 10px; border-top: 1px solid #333; padding-top: 15px;">
+                <p style="font-weight: 500; margin-bottom: 5px;">Speech</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Initialize TTS settings in session state if not present
+            if "tts_settings" not in st.session_state:
+                st.session_state.tts_settings = {}
+            
+            # Add the TTS controls to the sidebar
+            tts_settings = render_tts_controls()
+            st.session_state.tts_settings = tts_settings
                 
             # Model selection with specific model variants, icons, and call signs
             st.markdown("""
