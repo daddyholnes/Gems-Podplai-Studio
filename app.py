@@ -273,7 +273,8 @@ def main():
     right_col = st.container()
     
     # Create a column layout - main content and right sidebar
-    main_content, right_sidebar = st.columns([7, 2])
+    # Create a 3-column layout with more space for the left sidebar
+    left_sidebar, main_content, right_sidebar = st.columns([1.2, 5.8, 2])
     
     # Main content area with chat UI
     with main_content:
