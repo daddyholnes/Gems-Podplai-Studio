@@ -58,7 +58,7 @@ source venv/bin/activate
 
 ```bash
 # Install all required packages
-pip install anthropic>=0.49.0 google-generativeai>=0.8.4 openai>=1.72.0 pillow>=11.1.0 psycopg2-binary>=2.9.10 pyaudio>=0.2.14 requests>=2.32.3 speechrecognition>=3.14.2 streamlit>=1.44.1
+pip install -r requirements-github.txt
 ```
 
 ### Step 4: Set Up Environment Variables
