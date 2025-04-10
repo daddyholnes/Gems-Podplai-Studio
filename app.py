@@ -124,7 +124,7 @@ def main():
         # Logout button
         if st.button("Logout", use_container_width=True, type="primary"):
             logout_user()
-            st.experimental_rerun()
+            st.rerun()
         
         # Chat Library section
         st.subheader("Chat Library")
