@@ -41,6 +41,10 @@ if "user" not in st.session_state:
     st.session_state.user = None
 if "current_model" not in st.session_state:
     st.session_state.current_model = "Gemini"
+if "voice_commands_enabled" not in st.session_state:
+    st.session_state.voice_commands_enabled = False
+if "voice_commands_active" not in st.session_state:
+    st.session_state.voice_commands_active = False
 if "temperature" not in st.session_state:
     st.session_state.temperature = 0.7
 if "uploaded_image" not in st.session_state:
@@ -108,7 +112,14 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
-        toggle_voice_commands(st.session_state.voice_commands_enabled)
+        # Voice commands toggle - simple version without calling the function
+        voice_toggle_label = "Voice Commands"
+        voice_enabled = st.toggle(voice_toggle_label, value=st.session_state.voice_commands_enabled)
+        
+        # Update session state if toggle changed
+        if voice_enabled != st.session_state.voice_commands_enabled:
+            st.session_state.voice_commands_enabled = voice_enabled
+            st.rerun()
         
         # Logout button
         if st.button("Logout", use_container_width=True, type="primary"):
@@ -572,8 +583,8 @@ def main():
             # Force a rerun to show the new messages and reset UI state
             st.rerun()
     
-    with col2:
-        # Sidebar with enhanced Google AI Studio style settings
+    with col_right:
+        # Right sidebar with enhanced Google AI Studio style settings
         with st.container():
             # Display user profile at the top of the sidebar if authenticated
             if st.session_state.is_authenticated and st.session_state.user:
