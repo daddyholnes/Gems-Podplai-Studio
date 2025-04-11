@@ -1,0 +1,294 @@
+I’ll provide a comprehensive guide to integrate the official API call signs for the Gemini and Vertex AI models you’ve requested, focusing on the models listed in your links from the Vertex AI Model Garden and Google Cloud documentation. I’ll also include Python snippets and explain how to integrate them into your attached files (app.py, models (1).py, etc.). Since you’ve provided a long list of models, I’ll focus on the key Gemini and Vertex AI models you’ve explicitly mentioned (e.g., Gemini 2.5 Pro, Gemini 2.0 Flash) and a few representative models from Vertex AI, then provide a framework you can extend to others. I’ll use the official Google Cloud documentation as the basis.
+
+Step 1: Understanding the Models and API Access
+Gemini Models
+Gemini 2.5 Pro (Experimental): Available in Vertex AI Model Garden as gemini-2.5-pro-exp-03-25. This is an experimental model, typically accessed via the Vertex AI API or the google.generativeai Python SDK.
+Gemini 2.0 Flash: Available as gemini-2.0-flash-001. A lightweight, fast model for text generation.
+Gemini 2.0 Flash Lite: Available as gemini-2.0-flash-lite-001. An even lighter variant.
+Other Gemini Models: Your current models (1).py already supports gemini-1.5-pro and gemini-1.5-flash, which we’ll extend.
+Vertex AI Models
+Vertex AI provides access to Google’s models (e.g., Gemini family) and third-party models (e.g., LLaMA, Claude, Mistral). The API call signs differ based on whether you’re using the Vertex AI endpoint or the native SDK.
+Examples from your list:
+Imagen 3.0 Generate: imagen-3.0-generate-002 (image generation).
+Claude 3.5 Sonnet: claude-3-5-sonnet (via Anthropic on Vertex AI).
+LLaMA 3.2: llama-3.2-90b-vision-instruct-maas (via Meta on Vertex AI).
+API Access
+Gemini API: Uses the google.generativeai SDK with a simple API key.
+Vertex AI API: Requires Google Cloud authentication (e.g., service account) and project setup, using the google.cloud.aiplatform library.
+Step 2: Official API Call Signs
+From the Google Cloud documentation (https://cloud.google.com/vertex-ai/generative-ai/docs/model-garden/available-models) and your links, here are the official model identifiers:
+
+Gemini Models (via google.generativeai)
+gemini-2.5-pro-exp-03-25 (Experimental, may require special access)
+gemini-2.0-flash-001
+gemini-2.0-flash-lite-001
+gemini-1.5-pro (Already in your code)
+gemini-1.5-flash (Already in your code)
+Vertex AI Models (via google.cloud.aiplatform)
+Gemini: Same as above, prefixed with publishers/google/model-garden/ (e.g., publishers/google/model-garden/gemini-2.0-flash-001).
+Imagen: publishers/google/model-garden/imagen-3.0-generate-002
+Claude: publishers/anthropic/model-garden/claude-3-5-sonnet
+LLaMA: publishers/meta/model-garden/llama-3.2-90b-vision-instruct-maas
+Mistral: publishers/mistralai/model-garden/mixtral
+Note: Some models (e.g., experimental ones) may require whitelisting or specific endpoint configurations.
+
+Step 3: Python Snippets
+Gemini API (Using google.generativeai)
+Update models (1).py to handle the new Gemini models.
+
+python
+
+Collapse
+
+Unwrap
+
+Copy
+import google.generativeai as genai
+
+def get_gemini_response(prompt: str, message_history: List[Dict[str, str]], image_data=None, temperature=0.7, model_name="gemini-1.5-pro") -> str:
+    try:
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            return "Error: Gemini API key not found. Please set the GEMINI_API_KEY environment variable."
+        
+        genai.configure(api_key=api_key)
+        
+        # Supported models
+        valid_models = [
+            "gemini-1.5-pro", "gemini-1.5-flash", 
+            "gemini-2.0-flash-001", "gemini-2.0-flash-lite-001", 
+            "gemini-2.5-pro-exp-03-25"
+        ]
+        if model_name not in valid_models:
+            return f"Error: Invalid model '{model_name}'. Supported models: {valid_models}"
+        
+        model = genai.GenerativeModel(
+            model_name=model_name,
+            generation_config={"temperature": temperature}
+        )
+        
+        formatted_history = [
+            {"role": "user" if msg["role"] == "user" else "model", "parts": [msg["content"]]}
+            for msg in message_history[:-1]
+        ]
+        
+        if image_data:
+            content = [{"text": prompt}, {"inline_data": {"mime_type": "image/jpeg", "data": image_data}}]
+            response = model.generate_content(content)
+            return response.text
+        else:
+            chat = model.start_chat(history=formatted_history)
+            response = chat.send_message(prompt)
+            return response.text
+            
+    except Exception as e:
+        return f"Error with Gemini API: {str(e)}"
+Vertex AI API (Using google.cloud.aiplatform)
+Update models (1).py to handle Vertex AI models.
+
+python
+
+Collapse
+
+Unwrap
+
+Copy
+from google.cloud import aiplatform
+
+def get_vertex_ai_response(prompt: str, message_history: List[Dict[str, str]], model_name="gemini-2.0-flash-001") -> str:
+    try:
+        # Initialize Vertex AI with project and location
+        project_id = os.environ.get("GCP_PROJECT_ID", "camera-calibration-beta")
+        location = os.environ.get("GCP_LOCATION", "us-central1")
+        aiplatform.init(project=project_id, location=location)
+        
+        # Supported Vertex AI models
+        valid_models = {
+            "gemini-2.0-flash-001": "publishers/google/model-garden/gemini-2.0-flash-001",
+            "gemini-2.5-pro-exp-03-25": "publishers/google/model-garden/gemini-2.5-pro-exp-03-25",
+            "imagen-3.0-generate-002": "publishers/google/model-garden/imagen-3.0-generate-002",
+            "claude-3-5-sonnet": "publishers/anthropic/model-garden/claude-3-5-sonnet",
+            "llama-3.2-90b-vision": "publishers/meta/model-garden/llama-3.2-90b-vision-instruct-maas"
+        }
+        if model_name not in valid_models:
+            return f"Error: Invalid model '{model_name}'. Supported models: {list(valid_models.keys())}"
+        
+        endpoint = valid_models[model_name]
+        
+        # Format history (Vertex AI expects a different structure for some models)
+        formatted_history = [
+            {"author": "user" if msg["role"] == "user" else "bot", "content": msg["content"]}
+            for msg in message_history[:-1]
+        ]
+        
+        # Use PredictionServiceClient for Vertex AI
+        client = aiplatform.gapic.PredictionServiceClient()
+        endpoint_path = client.endpoint_path(project=project_id, location=location, endpoint=endpoint)
+        
+        instance = {
+            "prompt": prompt,
+            "history": formatted_history,
+            "parameters": {
+                "temperature": 0.4,
+                "max_output_tokens": 2048
+            }
+        }
+        
+        response = client.predict(endpoint=endpoint_path, instances=[instance])
+        return response.predictions[0]["content"]
+        
+    except Exception as e:
+        return f"Error with Vertex AI: {str(e)}"
+Step 4: Integration into Your Files
+Update models (1).py
+Replace the existing get_gemini_response and get_vertex_ai_response functions with the above snippets. This adds support for the new Gemini models and Vertex AI models.
+
+Update app.py
+Modify the model selection and response handling in app.py to include the new models.
+
+Update Model Options:
+In the main() function, update the model_options list:
+
+python
+
+Collapse
+
+Unwrap
+
+Copy
+model_options = [
+    "Gemini - 2.5 Pro Experimental",
+    "Gemini - 2.0 Flash",
+    "Gemini - 2.0 Flash Lite",
+    "Gemini - 1.5 Pro",
+    "Gemini - 1.5 Flash",
+    "Vertex AI - Gemini 2.0 Flash",
+    "Vertex AI - Gemini 2.5 Pro Experimental",
+    "Vertex AI - Imagen 3.0 Generate",
+    "Vertex AI - Claude 3.5 Sonnet",
+    "Vertex AI - LLaMA 3.2 90B Vision",
+    "OpenAI - GPT-4o",
+    "Anthropic - Claude 3.5 Sonnet",
+    "Perplexity - 70B Online"
+]
+Update Response Logic:
+In the chat input section, update the model mapping:
+
+python
+
+Collapse
+
+Unwrap
+
+Copy
+if user_input := st.chat_input("Message the AI..."):
+    user_message = {"role": "user", "content": user_input}
+    if st.session_state.uploaded_image:
+        user_message["image"] = st.session_state.uploaded_image
+    
+    st.session_state.messages.append(user_message)
+    
+    with st.spinner(f"Thinking... using {st.session_state.current_model}"):
+        try:
+            image_data = user_message.get("image")
+            model_name = st.session_state.current_model.lower()
+            
+            if "gemini" in model_name:
+                gemini_model_map = {
+                    "gemini - 2.5 pro experimental": "gemini-2.5-pro-exp-03-25",
+                    "gemini - 2.0 flash": "gemini-2.0-flash-001",
+                    "gemini - 2.0 flash lite": "gemini-2.0-flash-lite-001",
+                    "gemini - 1.5 pro": "gemini-1.5-pro",
+                    "gemini - 1.5 flash": "gemini-1.5-flash"
+                }
+                selected_model = gemini_model_map.get(model_name, "gemini-1.5-pro")
+                ai_response = get_gemini_response(
+                    user_input,
+                    st.session_state.messages,
+                    image_data=image_data,
+                    temperature=st.session_state.temperature,
+                    model_name=selected_model
+                )
+            
+            elif "vertex ai" in model_name:
+                vertex_model_map = {
+                    "vertex ai - gemini 2.0 flash": "gemini-2.0-flash-001",
+                    "vertex ai - gemini 2.5 pro experimental": "gemini-2.5-pro-exp-03-25",
+                    "vertex ai - imagen 3.0 generate": "imagen-3.0-generate-002",
+                    "vertex ai - claude 3.5 sonnet": "claude-3-5-sonnet",
+                    "vertex ai - llama 3.2 90b vision": "llama-3.2-90b-vision"
+                }
+                selected_model = vertex_model_map.get(model_name, "gemini-2.0-flash-001")
+                ai_response = get_vertex_ai_response(
+                    user_input,
+                    st.session_state.messages,
+                    model_name=selected_model
+                )
+            
+            # Keep existing OpenAI, Anthropic, Perplexity logic
+            elif "openai" in model_name:
+                ai_response = get_openai_response(user_input, st.session_state.messages)
+            elif "anthropic" in model_name:
+                ai_response = get_anthropic_response(user_input, st.session_state.messages)
+            elif "perplexity" in model_name:
+                ai_response = get_perplexity_response(
+                    user_input,
+                    st.session_state.messages,
+                    temperature=st.session_state.temperature
+                )
+            else:
+                ai_response = "Error: The selected model is not yet implemented."
+            
+            st.session_state.messages.append({"role": "assistant", "content": ai_response})
+            st.session_state.uploaded_image = None
+            save_conversation(st.session_state.user, st.session_state.current_model, st.session_state.messages)
+        except Exception as e:
+            st.error(f"Error: {str(e)}")
+            st.session_state.messages.append({"role": "assistant", "content": f"Sorry, I encountered an error: {str(e)}"})
+            st.session_state.uploaded_image = None
+        
+        st.rerun()
+Step 5: Setup and Configuration
+Environment Variables:
+Add to your .env file or environment:
+text
+
+Collapse
+
+Unwrap
+
+Copy
+GEMINI_API_KEY=your-gemini-api-key
+GCP_PROJECT_ID=camera-calibration-beta
+GCP_LOCATION=us-central1
+For Vertex AI, ensure you have a service account key file (e.g., service-account.json) and set:
+text
+
+Collapse
+
+Unwrap
+
+Copy
+GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
+Install Dependencies: Update your requirements with:
+text
+
+Collapse
+
+Unwrap
+
+Copy
+pip install google-generativeai google-cloud-aiplatform
+Vertex AI Project Setup:
+Enable the Vertex AI API in your Google Cloud project (camera-calibration-beta).
+Ensure your service account has permissions for Vertex AI.
+Step 6: Extending to Other Models
+For additional models (e.g., LLaMA, Mistral), repeat the process:
+
+Add the model identifier to valid_models in get_vertex_ai_response.
+Update model_options and the mapping in app.py.
+Example for LLaMA 3.1:
+
+Model ID: llama-3.1-405b-instruct-maas
+Add to vertex_model_map: "vertex ai - llama 3.1 405b": "llama-3.1-405b-instruct-maas"
+Final Notes

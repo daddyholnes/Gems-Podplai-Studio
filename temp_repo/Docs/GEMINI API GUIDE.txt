@@ -1,0 +1,623 @@
+# Generative AI Integration Guide for `app.py`
+
+This guide is a comprehensive resource for integrating Google's Generative AI features into your existing Flask application (`app.py`) using the `google-generativeai` library (version 1.9.0) and API key authentication via the `GEMINI_API_KEY` environment variable. It is tailored specifically to your `app.py` structure, providing Python snippets that fit seamlessly into your current setup. The guide is organized like a documentation website with a clickable and expandable index tree, detailing each feature, the models that support it, and how to implement it within your application.
+
+Designed to assist users, including those with neurological disorders, this guide enhances the capabilities of your chat application to leverage advanced AI functionalities.
+
+---
+
+## Table of Contents
+
+1. **[Introduction](#introduction)**
+2. **[Model Selection](#model-selection)**
+3. **[Text Prompts](#text-prompts)**
+4. **[Multimodal Prompts](#multimodal-prompts)**
+   - [Image Inputs](#image-inputs)
+   - [Audio Inputs](#audio-inputs)
+   - [Video Inputs](#video-inputs)
+   - [Document Inputs](#document-inputs)
+5. **[Advanced Features](#advanced-features)**
+   - [Function Calling](#function-calling)
+   - [Controlled Generation](#controlled-generation)
+   - [Grounding](#grounding)
+   - [Context Caching](#context-caching)
+   - [Code Execution](#code-execution)
+6. **[Model Tuning](#model-tuning)**
+7. **[Responsible AI](#responsible-ai)**
+8. **[Deployment Features](#deployment-features)**
+   - [Batch Prediction](#batch-prediction)
+   - [Provisioned Throughput](#provisioned-throughput)
+9. **[Additional Resources](#additional-resources)**
+
+---
+
+## Introduction
+
+This guide enhances your `app.py` Flask application, which currently supports text-based chat with Gemini models, authenticated via an API key stored in `GEMINI_API_KEY`. The application uses `google-generativeai` version 1.9.0, serves a web interface, and manages chat history in a text file.
+
+### Prerequisites
+
+- **Google Cloud Project**: Vertex AI API enabled.
+- **API Key**: Set `GEMINI_API_KEY` in your environment (`export GEMINI_API_KEY=your_key`).
+- **Library**: `google-generativeai==1.9.0` installed (`pip install google-generativeai==1.9.0`).
+- **Flask Setup**: Your `app.py` is running with Flask, CORS, and a templates/static folder structure.
+
+### Current Authentication Setup
+
+Your `app.py` initializes the Generative AI client as follows:
+
+```python
+import os
+import google.generativeai as genai
+
+api_key = os.environ.get("GEMINI_API_KEY")
+if not api_key:
+    raise ValueError("GEMINI_API_KEY environment variable not set or empty.")
+genai.configure(api_key=api_key)
+```
+
+All snippets in this guide build on this setup.
+
+---
+
+## Model Selection
+
+### Overview
+
+Choose from various Gemini models based on your needs (e.g., speed, multimodal support, reasoning).
+
+### Supported Models
+
+- **`gemini-2.0-flash`**: Fast, general-purpose, multimodal (text, images, audio, video).
+- **`gemini-2.5-pro-exp-03-25`**: Advanced reasoning, multimodal, experimental.
+- **`gemini-2.0-flash-lite`**: Cost-effective, high throughput, multimodal.
+- **`gemini-2.0-flash-thinking-exp-01-21`**: Enhanced reasoning with thinking trace, text/images.
+
+### Integration into `app.py`
+
+Modify the `/generate` route to allow model selection from the frontend:
+
+```python
+@app.route('/generate', methods=['POST'])
+def generate():
+    data = request.get_json()
+    prompt = data.get('prompt', '')
+    model_id = data.get('model', 'gemini-2.0-flash')  # Default model
+    if not prompt:
+        return jsonify({"error": "No text prompt provided"}), 400
+    
+    current_structured_history = load_structured_history()
+    response_text = call_gemini_sync(prompt, current_structured_history, model_to_use=model_id)
+    
+    updated_history = current_structured_history + [
+        {"role": "user", "parts": [prompt]},
+        {"role": "model", "parts": [response_text]}
+    ]
+    save_structured_history(updated_history)
+    return jsonify({"response": response_text})
+```
+
+Update `call_gemini_sync` to use the selected model:
+
+```python
+def call_gemini_sync(message, structured_history=[], audio_file=None, model_to_use='gemini-2.0-flash'):
+    model_name = f'models/{model_to_use}' if not model_to_use.startswith('models/') else model_to_use
+    model = genai.GenerativeModel(model_name)
+    response = model.generate_content([message])
+    return response.text
+```
+
+**Frontend Adjustment**: Add a dropdown in `index.html` to send `model` in the JSON payload.
+
+---
+
+## Text Prompts
+
+### Overview
+
+Basic text generation, already implemented in your `app.py`.
+
+### Supported Models
+
+- All Gemini models (`gemini-2.0-flash`, `gemini-2.5-pro-exp-03-25`, etc.).
+
+### Integration into `app.py`
+
+Your current setup is sufficient:
+
+```python
+def call_gemini_sync(message, structured_history=[], audio_file=None, model_to_use='gemini-2.0-flash'):
+    model_name = f'models/{model_to_use}'
+    model = genai.GenerativeModel(model_name)
+    response = model.generate_content([message])
+    return response.text
+
+@app.route('/generate', methods=['POST'])
+def generate():
+    data = request.get_json()
+    prompt = data.get('prompt', '')
+    model_id = data.get('model', 'gemini-2.0-flash')
+    if not prompt:
+        return jsonify({"error": "No text prompt provided"}), 400
+    
+    response_text = call_gemini_sync(prompt, model_to_use=model_id)
+    # History handling remains as is
+    return jsonify({"response": response_text})
+```
+
+---
+
+## Multimodal Prompts
+
+### Image Inputs
+
+#### Overview
+
+Send images with text prompts for analysis or description.
+
+#### Supported Models
+
+- `gemini-2.0-flash`, `gemini-2.5-pro-exp-03-25`, `gemini-2.0-flash-lite`, `gemini-2.0-flash-thinking-exp-01-21`.
+
+#### Integration into `app.py`
+
+Update `call_gemini_sync` to handle images:
+
+```python
+def call_gemini_sync(message, structured_history=[], audio_file=None, image_file=None, model_to_use='gemini-2.0-flash'):
+    model_name = f'models/{model_to_use}'
+    model = genai.GenerativeModel(model_name)
+    contents = [message]
+    if image_file:
+        with open(image_file, "rb") as f:
+            image_data = f.read()
+        contents.append({"mime_type": "image/jpeg", "data": image_data})
+    response = model.generate_content(contents)
+    return response.text
+
+@app.route('/generate', methods=['POST'])
+def generate():
+    data = request.get_json()
+    prompt = data.get('prompt', '')
+    model_id = data.get('model', 'gemini-2.0-flash')
+    image_path = data.get('image_path', None)  # Path to uploaded image
+    if not prompt:
+        return jsonify({"error": "No text prompt provided"}), 400
+    
+    response_text = call_gemini_sync(prompt, image_file=image_path, model_to_use=model_id)
+    # History handling
+    return jsonify({"response": response_text})
+```
+
+**Frontend**: Add file upload for images and send `image_path`.
+
+---
+
+### Audio Inputs
+
+#### Overview
+
+Process audio files (e.g., WAV) for transcription or analysis.
+
+#### Supported Models
+
+- `gemini-2.0-flash`, `gemini-2.5-pro-exp-03-25`, `gemini-2.0-flash-lite`.
+
+#### Integration into `app.py`
+
+Enable audio in `call_gemini_sync`:
+
+```python
+def call_gemini_sync(message, structured_history=[], audio_file=None, image_file=None, model_to_use='gemini-2.0-flash'):
+    model_name = f'models/{model_to_use}'
+    model = genai.GenerativeModel(model_name)
+    contents = [message]
+    if audio_file:
+        with open(audio_file, "rb") as f:
+            audio_data = f.read()
+        contents.append({"mime_type": "audio/wav", "data": audio_data})
+    response = model.generate_content(contents)
+    return response.text
+
+@app.route('/generate', methods=['POST'])
+def generate():
+    data = request.get_json()
+    prompt = data.get('prompt', '')
+    model_id = data.get('model', 'gemini-2.0-flash')
+    audio_path = data.get('audio_path', None)
+    if not prompt:
+        return jsonify({"error": "No text prompt provided"}), 400
+    
+    response_text = call_gemini_sync(prompt, audio_file=audio_path, model_to_use=model_id)
+    # History handling
+    return jsonify({"response": response_text})
+```
+
+**Frontend**: Add audio file upload.
+
+---
+
+### Video Inputs
+
+#### Overview
+
+Analyze video content, including audio tracks.
+
+#### Supported Models
+
+- `gemini-2.0-flash`, `gemini-2.5-pro-exp-03-25`, `gemini-2.0-flash-lite`.
+
+#### Integration into `app.py`
+
+Add video support:
+
+```python
+def call_gemini_sync(message, structured_history=[], audio_file=None, image_file=None, video_file=None, model_to_use='gemini-2.0-flash'):
+    model_name = f'models/{model_to_use}'
+    model = genai.GenerativeModel(model_name)
+    contents = [message]
+    if video_file:
+        with open(video_file, "rb") as f:
+            video_data = f.read()
+        contents.append({"mime_type": "video/mp4", "data": video_data})
+    response = model.generate_content(contents)
+    return response.text
+
+@app.route('/generate', methods=['POST'])
+def generate():
+    data = request.get_json()
+    prompt = data.get('prompt', '')
+    model_id = data.get('model', 'gemini-2.0-flash')
+    video_path = data.get('video_path', None)
+    if not prompt:
+        return jsonify({"error": "No text prompt provided"}), 400
+    
+    response_text = call_gemini_sync(prompt, video_file=video_path, model_to_use=model_id)
+    # History handling
+    return jsonify({"response": response_text})
+```
+
+**Frontend**: Add video file upload.
+
+---
+
+### Document Inputs
+
+#### Overview
+
+Process text from documents (e.g., PDFs) by extracting text first.
+
+#### Supported Models
+
+- All Gemini models (text-based after extraction).
+
+#### Integration into `app.py`
+
+Requires a PDF extraction library (e.g., `PyPDF2`):
+
+```python
+import PyPDF2
+
+def extract_text_from_pdf(pdf_path):
+    with open(pdf_path, 'rb') as file:
+        reader = PyPDF2.PdfReader(file)
+        text = ""
+        for page in reader.pages:
+            text += page.extract_text()
+    return text
+
+def call_gemini_sync(message, structured_history=[], audio_file=None, image_file=None, video_file=None, pdf_file=None, model_to_use='gemini-2.0-flash'):
+    model_name = f'models/{model_to_use}'
+    model = genai.GenerativeModel(model_name)
+    contents = [message]
+    if pdf_file:
+        pdf_text = extract_text_from_pdf(pdf_file)
+        contents.append(pdf_text)
+    response = model.generate_content(contents)
+    return response.text
+
+@app.route('/generate', methods=['POST'])
+def generate():
+    data = request.get_json()
+    prompt = data.get('prompt', '')
+    model_id = data.get('model', 'gemini-2.0-flash')
+    pdf_path = data.get('pdf_path', None)
+    if not prompt:
+        return jsonify({"error": "No text prompt provided"}), 400
+    
+    response_text = call_gemini_sync(prompt, pdf_file=pdf_path, model_to_use=model_id)
+    # History handling
+    return jsonify({"response": response_text})
+```
+
+**Install**: `pip install PyPDF2`.
+
+---
+
+## Advanced Features
+
+### Function Calling
+
+#### Overview
+
+Connect models to external APIs for dynamic responses.
+
+#### Supported Models
+
+- `gemini-2.0-flash`, `gemini-2.5-pro-exp-03-25`, `gemini-2.0-flash-lite`.
+
+#### Integration into `app.py`
+
+Define a function and integrate:
+
+```python
+from google.generativeai.types import FunctionDeclaration
+
+weather_function = FunctionDeclaration(
+    name="get_weather",
+    description="Get the current weather for a city",
+    parameters={
+        "type": "object",
+        "properties": {"city": {"type": "string"}},
+        "required": ["city"]
+    }
+)
+
+def call_gemini_sync(message, structured_history=[], audio_file=None, image_file=None, video_file=None, pdf_file=None, model_to_use='gemini-2.0-flash'):
+    model_name = f'models/{model_to_use}'
+    model = genai.GenerativeModel(model_name, tools=[weather_function])
+    contents = [message]
+    response = model.generate_content(contents)
+    if response.candidates[0].function_calls:
+        call = response.candidates[0].function_calls[0]
+        if call.name == "get_weather":
+            city = call.args["city"]
+            return f"The weather in {city} is sunny."  # Replace with real API call
+    return response.text
+
+@app.route('/generate', methods=['POST'])
+def generate():
+    data = request.get_json()
+    prompt = data.get('prompt', '')
+    model_id = data.get('model', 'gemini-2.0-flash')
+    if not prompt:
+        return jsonify({"error": "No text prompt provided"}), 400
+    
+    response_text = call_gemini_sync(prompt, model_to_use=model_id)
+    # History handling
+    return jsonify({"response": response_text})
+```
+
+---
+
+### Controlled Generation
+
+#### Overview
+
+Adjust output style with generation parameters.
+
+#### Supported Models
+
+- All Gemini models.
+
+#### Integration into `app.py`
+
+Add `GenerationConfig`:
+
+```python
+from google.generativeai.types import GenerationConfig
+
+def call_gemini_sync(message, structured_history=[], audio_file=None, image_file=None, video_file=None, pdf_file=None, model_to_use='gemini-2.0-flash'):
+    model_name = f'models/{model_to_use}'
+    model = genai.GenerativeModel(model_name)
+    config = GenerationConfig(temperature=0.7, top_p=0.9, max_output_tokens=100)
+    response = model.generate_content([message], generation_config=config)
+    return response.text
+```
+
+**Frontend**: Add sliders for `temperature`, `top_p`, etc., and send in JSON.
+
+---
+
+### Grounding
+
+#### Overview
+
+Connect to external data to reduce hallucinations (requires Vertex AI platform setup).
+
+#### Supported Models
+
+- `gemini-2.0-flash`, `gemini-2.5-pro-exp-03-25`, `gemini-2.0-flash-lite`.
+
+#### Integration into `app.py`
+
+Simulate with additional context:
+
+```python
+def call_gemini_sync(message, structured_history=[], audio_file=None, image_file=None, video_file=None, pdf_file=None, model_to_use='gemini-2.0-flash'):
+    model_name = f'models/{model_to_use}'
+    model = genai.GenerativeModel(model_name)
+    grounding_context = "Use only verified data from trusted sources."
+    contents = [grounding_context, message]
+    response = model.generate_content(contents)
+    return response.text
+```
+
+**Note**: Full grounding requires Vertex AI Search setup beyond API key scope.
+
+---
+
+### Context Caching
+
+#### Overview
+
+Store frequent data for efficiency (Vertex AI feature, not directly via API key).
+
+#### Supported Models
+
+- `gemini-2.0-flash`, `gemini-2.5-pro-exp-03-25`.
+
+#### Integration into `app.py`
+
+Simulate locally:
+
+```python
+context_cache = "Common context data here."
+
+def call_gemini_sync(message, structured_history=[], audio_file=None, image_file=None, video_file=None, pdf_file=None, model_to_use='gemini-2.0-flash'):
+    model_name = f'models/{model_to_use}'
+    model = genai.GenerativeModel(model_name)
+    contents = [context_cache, message]
+    response = model.generate_content(contents)
+    return response.text
+```
+
+**Note**: True caching requires Vertex AI integration.
+
+---
+
+### Code Execution
+
+#### Overview
+
+Execute code generated by the model (requires additional setup).
+
+#### Supported Models
+
+- `gemini-2.0-flash`, `gemini-2.5-pro-exp-03-25`.
+
+#### Integration into `app.py`
+
+Basic execution:
+
+```python
+import subprocess
+
+def call_gemini_sync(message, structured_history=[], audio_file=None, image_file=None, video_file=None, pdf_file=None, model_to_use='gemini-2.0-flash'):
+    model_name = f'models/{model_to_use}'
+    model = genai.GenerativeModel(model_name)
+    response = model.generate_content([f"Generate Python code: {message}"])
+    code = response.text.strip()
+    if code.startswith("```python") and code.endswith("```"):
+        code = code[9:-3].strip()
+        result = subprocess.run(["python", "-c", code], capture_output=True, text=True)
+        return result.stdout or result.stderr
+    return response.text
+```
+
+**Security**: Use a sandbox for safety.
+
+---
+
+## Model Tuning
+
+### Overview
+
+Fine-tune models for specific tasks (requires Vertex AI platform).
+
+### Supported Models
+
+- `gemini-2.0-flash`, `gemini-2.5-pro-exp-03-25`.
+
+### Integration into `app.py`
+
+Use a pre-tuned model ID (post-tuning):
+
+```python
+def call_gemini_sync(message, structured_history=[], audio_file=None, image_file=None, video_file=None, pdf_file=None, model_to_use='tuned-gemini-2.0-flash'):
+    model_name = f'models/{model_to_use}'
+    model = genai.GenerativeModel(model_name)
+    response = model.generate_content([message])
+    return response.text
+```
+
+**Note**: Tuning requires dataset preparation and Vertex AI setup.
+
+---
+
+## Responsible AI
+
+### Overview
+
+Handle safety filters and blocked responses.
+
+### Supported Models
+
+- All Gemini models.
+
+### Integration into `app.py`
+
+Check safety ratings:
+
+```python
+def call_gemini_sync(message, structured_history=[], audio_file=None, image_file=None, video_file=None, pdf_file=None, model_to_use='gemini-2.0-flash'):
+    model_name = f'models/{model_to_use}'
+    model = genai.GenerativeModel(model_name)
+    response = model.generate_content([message])
+    if response.prompt_feedback or not response.candidates:
+        return "Response blocked due to safety concerns."
+    return response.text
+```
+
+---
+
+## Deployment Features
+
+### Batch Prediction
+
+#### Overview
+
+Process multiple inputs offline (Vertex AI feature).
+
+#### Supported Models
+
+- `gemini-2.0-flash`, `gemini-2.0-flash-lite`.
+
+#### Integration into `app.py`
+
+Simulate batch locally:
+
+```python
+def batch_process(prompts, model_to_use='gemini-2.0-flash'):
+    model_name = f'models/{model_to_use}'
+    model = genai.GenerativeModel(model_name)
+    results = [model.generate_content([p]).text for p in prompts]
+    return results
+
+@app.route('/batch', methods=['POST'])
+def batch():
+    data = request.get_json()
+    prompts = data.get('prompts', [])
+    responses = batch_process(prompts)
+    return jsonify({"responses": responses})
+```
+
+---
+
+### Provisioned Throughput
+
+#### Overview
+
+Ensure dedicated resources (Vertex AI feature).
+
+#### Supported Models
+
+- `gemini-2.0-flash`, `gemini-2.5-pro-exp-03-25`.
+
+#### Integration into `app.py`
+
+No direct code change; requires Vertex AI deployment configuration.
+
+---
+
+## Additional Resources
+
+- [Vertex AI Overview](https://cloud.google.com/vertex-ai/generative-ai/docs/overview)
+- [Gemini Models](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models)
+- [Multimodal Prompts](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/send-chat-prompts-gemini)
+- [Function Calling](https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/function-calling)
+- [Responsible AI](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/responsible-ai)
+
+---
+
+This guide transforms your `app.py` into a powerful tool for neurological disorder support, leveraging Google’s Generative AI capabilities. Each feature is integrated with minimal disruption to your existing structure, using your current authentication method and library version. Expand the sections as needed to enhance functionality!

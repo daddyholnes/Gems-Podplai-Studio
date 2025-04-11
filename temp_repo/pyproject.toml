@@ -21,7 +21,6 @@ dependencies = [
     "elevenlabs>=1.56.0",
     "soundfile>=0.13.1",
     "av>=14.3.0",
-    "trafilatura>=2.0.0",
 ]
 
 [[tool.uv.index]]

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="24px" height="24px" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Anthropic Icon</title>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="claude-logo" fill="#9450FC" fill-rule="nonzero">
+            <path d="M12,2 C6.477,2 2,6.477 2,12 C2,17.523 6.477,22 12,22 C17.523,22 22,17.523 22,12 C22,6.477 17.523,2 12,2 Z M12,5 C13.654,5 15,6.346 15,8 C15,9.654 13.654,11 12,11 C10.346,11 9,9.654 9,8 C9,6.346 10.346,5 12,5 Z M12,19.2 C9.5,19.2 7.29,17.92 6,15.92 C6.03,13.96 10,12.9 12,12.9 C14,12.9 17.97,13.96 18,15.92 C16.71,17.92 14.5,19.2 12,19.2 Z" id="Shape"></path>
+        </g>
+    </g>
+</svg>

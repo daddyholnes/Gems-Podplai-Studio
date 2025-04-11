@@ -1,0 +1,122 @@
+🗣️ Usage
+Open in Spaces Open In Colab
+
+Main Models
+Eleven Multilingual v2 (eleven_multilingual_v2)
+
+Excels in stability, language diversity, and accent accuracy
+Supports 29 languages
+Recommended for most use cases
+Eleven Turbo v2.5 (eleven_turbo_v2_5)
+
+High quality, lowest latency
+Ideal for developer use cases where speed is crucial
+Supports 32 languages
+For more detailed information about these models and others, visit the ElevenLabs Models documentation.
+
+from dotenv import load_dotenv
+from elevenlabs.client import ElevenLabs
+from elevenlabs import play
+
+load_dotenv()
+
+client = ElevenLabs()
+
+audio = client.text_to_speech.convert(
+    text="The first move is what sets everything in motion.",
+    voice_id="JBFqnCBsd6RMkjVDRZzb",
+    model_id="eleven_multilingual_v2",
+    output_format="mp3_44100_128",
+)
+
+play(audio)
+Play
+🗣️ Voices
+List all your available voices with voices().
+
+from elevenlabs.client import ElevenLabs
+
+client = ElevenLabs(
+  api_key="YOUR_API_KEY",
+)
+
+response = client.voices.get_all()
+print(response.voices)
+For information about the structure of the voices output, please refer to the official ElevenLabs API documentation for Get Voices.
+
+Build a voice object with custom settings to personalize the voice style, or call client.voices.get_settings("your-voice-id") to get the default settings for the voice.
+
+Clone Voice
+Clone your voice in an instant. Note that voice cloning requires an API key, see below.
+
+from elevenlabs.client import ElevenLabs
+from elevenlabs import play
+
+client = ElevenLabs(
+  api_key="YOUR_API_KEY", # Defaults ELEVENLABS_API_KEY
+)
+
+voice = client.clone(
+    name="Alex",
+    description="An old American male voice with a slight hoarseness in his throat. Perfect for news", # Optional
+    files=["./sample_0.mp3", "./sample_1.mp3", "./sample_2.mp3"],
+)
+🚿 Streaming
+Stream audio in real-time, as it's being generated.
+
+from elevenlabs import stream
+from elevenlabs.client import ElevenLabs
+
+client = ElevenLabs()
+
+audio_stream = client.text_to_speech.convert_as_stream(
+    text="This is a test",
+    voice_id="JBFqnCBsd6RMkjVDRZzb",
+    model_id="eleven_multilingual_v2"
+)
+
+# option 1: play the streamed audio locally
+stream(audio_stream)
+
+# option 2: process the audio bytes manually
+for chunk in audio_stream:
+    if isinstance(chunk, bytes):
+        print(chunk)
+Input streaming
+Stream text chunks into audio as it's being generated, with <1s latency. Note: if chunks don't end with space or punctuation (" ", ".", "?", "!"), the stream will wait for more text.
+
+from elevenlabs.client import ElevenLabs
+from elevenlabs import stream
+
+client = ElevenLabs(
+  api_key="YOUR_API_KEY", # Defaults to ELEVENLABS_API_KEY
+)
+
+def text_stream():
+    yield "Hi there, I'm Eleven "
+    yield "I'm a text to speech API "
+
+audio_stream = client.generate(
+    text=text_stream(),
+    voice="Brian",
+    model="eleven_multilingual_v2",
+    stream=True
+)
+
+stream(audio_stream)
+Async Client
+Use AsyncElevenLabs if you want to make API calls asynchronously.
+
+import asyncio
+
+from elevenlabs.client import AsyncElevenLabs
+
+eleven = AsyncElevenLabs(
+  api_key="MY_API_KEY" # Defaults to ELEVENLABS_API_KEY
+)
+
+async def print_models() -> None:
+    models = await eleven.models.get_all()
+    print(models)
+
+asyncio.run(print_models())

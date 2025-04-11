@@ -1,0 +1,18 @@
+Okay, agent, let's refine the chat persistence logic based on user feedback. The goal is to easily resume the *most recent* conversation with a specific model.
+
+1.  **Fix Perplexity Model:** First, please ensure the Perplexity API integration uses a valid model name like `claude-3-sonnet-20240229` instead of the invalid 'pplx-70b-online'.
+
+2.  **Implement "Resume Last Chat" via Dropdown:** Modify the application so that when a user selects a model from the **sidebar dropdown**:
+    *   The application should query the PostgreSQL database (using connection details from Secrets) for the **most recently updated** chat thread associated with that specific `model_name`.
+    *   If a recent chat thread for that model is found, load its *entire chat history* from the database into the main chat window (`st.session_state['messages']` or equivalent) and store its unique `chat_id` in the session state.
+    *   If *no* previous chat thread is found for that model, start a new, empty chat session in the main window (clear `st.session_state['messages']`) and clear any stored `chat_id`.
+    *   The "Previous Chats" list in the sidebar should still be populated (perhaps just showing timestamp/model for now) as an overview, but the primary way to resume the *last* chat is the dropdown.
+
+3.  **Implement Saving/Updating:**
+    *   After each user message and AI response cycle, the application needs to save or update the chat history in the database.
+    *   If a `chat_id` is currently stored in the session state (meaning we loaded an existing chat), `UPDATE` the corresponding database record with the new `chat_history` and update its `last_updated` timestamp.
+    *   If no `chat_id` is stored (it's a new chat), `INSERT` a new record into the database with the `model_name`, current `chat_history`, and timestamp. Then retrieve the new `chat_id` and store it in the session state.
+
+4.  **Clarify "New Chat" Button:** Ensure the "New Chat" button explicitly clears the main chat window (`st.session_state['messages']`) and clears the stored `chat_id` from the session state, forcing the *next* interaction to start a completely new chat thread in the database.
+
+Please implement these changes to the database interaction and chat loading/saving logic based on the model dropdown selection.
